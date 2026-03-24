@@ -11,6 +11,7 @@ export default function App() {
   const [lastUpdate, setLastUpdate] = useState('--');
   const [clearedAt, setClearedAt] = useState(null);
   const [mockAlerts, setMockAlerts] = useState([]);
+  const [zoneFilter, setZoneFilter] = useState('ALL');
 
   const { alerts: rawAlerts, connected } = useWebSocket();
   
@@ -18,6 +19,8 @@ export default function App() {
   const allAlerts = [...mockAlerts, ...rawAlerts];
   const alerts = clearedAt ? allAlerts.filter(a => new Date(a.detectedAt || Date.now()) > clearedAt) : allAlerts;
   const alertIcaos = new Set(alerts.map(a => a.icao24 || a.aircraftIcao));
+  const zoneTypes = ['ALL', ...new Set(zones.map(z => z.type))];
+  const filteredZones = zoneFilter === 'ALL' ? zones : zones.filter(z => z.type === zoneFilter);
 
   useEffect(() => {
     axios.get('http://localhost:8080/api/zones')
@@ -130,7 +133,7 @@ export default function App() {
             </div>
             
             <div style={{ background: 'white', padding: '12px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-               <DroneMap aircraft={aircraft} zones={zones} alertIcaos={alertIcaos} />
+               <DroneMap aircraft={aircraft} zones={filteredZones} alertIcaos={alertIcaos} />
                
                {/* Leyenda */}
                <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '13px', color: '#4b5563', justifyContent: 'center', fontWeight: '500' }}>
@@ -147,11 +150,13 @@ export default function App() {
             <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                  <h3 style={{ margin: 0, fontSize: '16px', color: '#374151' }}>Zonas vigiladas</h3>
-                 <span style={{ fontSize: '12px', background: '#f3f4f6', padding: '2px 8px', borderRadius: '12px', color: '#4b5563' }}>Todas las zonas ▾</span>
+                 <select value={zoneFilter} onChange={e => setZoneFilter(e.target.value)} style={{ fontSize: '12px', background: '#f3f4f6', padding: '2px 8px', borderRadius: '12px', color: '#4b5563', border: 'none', cursor: 'pointer', outline: 'none' }}>
+                   {zoneTypes.map(t => <option key={t} value={t}>{t === 'ALL' ? 'Todas las zonas' : t}</option>)}
+                 </select>
                </div>
                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {zones.length === 0 ? <li style={{ fontSize: '13px', color: '#9ca3af' }}>Cargando zonas...</li> :
-                   zones.map(z => (
+                   filteredZones.map(z => (
                      <li key={z.id} style={{ fontSize: '14px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px', color: '#4b5563' }}>
                        📍 <strong>{z.name}</strong> <span style={{ fontSize: '11px', background: '#e0f2fe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', float: 'right' }}>{z.type}</span>
                      </li>

@@ -8,10 +8,15 @@ export default function AlertPanel({ alerts }) {
       </h3>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {alerts.slice(0, 5).map((a, i) => (
-          <div key={i} style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', borderRadius: '4px', padding: '12px', fontSize: '13px', color: '#7f1d1d' }}>
-            <strong>{a.callsign || a.aircraftCallsign || a.icao24}</strong> detectado en <strong>{a.zoneName}</strong>
+          <div key={i} style={{ background: '#fef2f2', borderLeft: `4px solid ${(a.severity || a.severidad) === 'HIGH' ? '#dc2626' : '#f97316'}`, borderRadius: '4px', padding: '12px', fontSize: '13px', color: '#7f1d1d' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span><strong>{a.callsign || a.aircraftCallsign || a.icao24}</strong> en <strong>{a.zoneName}</strong></span>
+              <span style={{ fontSize: '11px', fontWeight: 'bold', color: (a.severity || a.severidad) === 'HIGH' ? '#dc2626' : '#f97316', background: (a.severity || a.severidad) === 'HIGH' ? '#fee2e2' : '#fff7ed', padding: '2px 6px', borderRadius: '4px' }}>
+                {a.severity || a.severidad || 'MEDIUM'}
+              </span>
+            </div>
             <div style={{ fontSize: '11px', color: '#ef4444', marginTop: '6px', opacity: 0.8 }}>
-              A {a.distance || a.distanceKm} km del centro · {new Date(a.detectedAt || Date.now()).toLocaleTimeString()}
+              {a.distance || a.distanceKm} km del centro · {new Date(a.detectedAt || Date.now()).toLocaleTimeString()}
             </div>
           </div>
         ))}
