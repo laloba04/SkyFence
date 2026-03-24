@@ -263,8 +263,8 @@ Cobertura incluida:
 ## Posibles mejoras
 
 - Histórico de alertas persistido en BD con consulta por rango de fechas
-- Panel de gestión de zonas en el frontend (añadir y eliminar desde la UI)
-- Spring Actuator para endpoints `/health` y `/metrics`
+- ✅ Panel de gestión de zonas en el frontend (añadir y eliminar desde la UI)
+- ✅ Spring Actuator para endpoints `/health` y `/metrics`
 - Simular intrusión con zona elegible desde el frontend
 - Autenticación con JWT para proteger los endpoints
 - MQTT para integración con sensores IoT reales en lugar de OpenSky
