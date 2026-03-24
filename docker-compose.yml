@@ -3,9 +3,9 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: dronetrack
-      POSTGRES_USER: dronetrack
-      POSTGRES_PASSWORD: dronetrack123
+      POSTGRES_DB: ${POSTGRES_DB:-dronetrack}
+      POSTGRES_USER: ${POSTGRES_USER:-dronetrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env or environment}
     ports:
       - '5432:5432'
     volumes:
@@ -16,9 +16,9 @@ services:
     ports:
       - '8080:8080'
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dronetrack
-      SPRING_DATASOURCE_USERNAME: dronetrack
-      SPRING_DATASOURCE_PASSWORD: dronetrack123
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-dronetrack}
+      DB_USERNAME: ${POSTGRES_USER:-dronetrack}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env or environment}
     depends_on:
       - postgres
 

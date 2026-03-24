@@ -10,6 +10,15 @@ Sistema de monitorización de aeronaves en tiempo real con detección automátic
 - Testing: JUnit 5, Mockito, MockMvc
 - Deploy local: Docker + docker-compose
 
+## Configuración de secretos
+
+1. Copia `.env.example` a `.env`.
+2. Define un valor fuerte para `POSTGRES_PASSWORD`.
+
+```bash
+cp .env.example .env
+```
+
 ## Arranque rápido
 
 ```bash
