@@ -173,6 +173,16 @@ Documentación interactiva disponible en `http://localhost:8080/swagger-ui.html`
 - Endpoint STOMP: `ws://localhost:8080/ws`
 - Topic de alertas: `/topic/alerts`
 
+### Actuator (monitorización)
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET` | `/actuator/health` | Estado de salud (BD + OpenSky API) |
+| `GET` | `/actuator/info` | Información de la aplicación |
+| `GET` | `/actuator/metrics` | Métricas del sistema (JVM, HTTP, etc.) |
+
+> El health check incluye un indicador personalizado para verificar la conexión con OpenSky Network API.
+
 ---
 
 ## Lógica de geofencing
