@@ -12,6 +12,14 @@ Sistema de monitorización de aeronaves que consume datos reales de [OpenSky Net
 
 ---
 
+## Vista previa
+
+![Mapa en tiempo real](docs/screenshot-map.png)
+
+![Swagger API](docs/screenshot-swagger.png)
+
+---
+
 ## Arquitectura y flujo del sistema
 
 ```
