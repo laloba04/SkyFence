@@ -28,13 +28,16 @@ export default function DroneMap({ aircraft, zones, alertIcaos }) {
       style={{ height: '500px', width: '100%', borderRadius: '8px' }}>
       <TileLayer url='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
         attribution='OpenStreetMap contributors' />
-      {zones.map(z => (
-        <Circle key={z.id} center={[z.latitude, z.longitude]}
-          radius={z.radiusKm * 1000}
-          pathOptions={{ color: 'red', fillColor: 'red', fillOpacity: 0.1 }}>
-          <Popup>{z.name} — {z.type}</Popup>
-        </Circle>
-      ))}
+      {zones.map(z => {
+        const color = z.type === 'AIRPORT' ? '#3b82f6' : z.type === 'NUCLEAR' ? '#f97316' : '#dc2626';
+        return (
+          <Circle key={z.id} center={[z.latitude, z.longitude]}
+            radius={z.radiusKm * 1000}
+            pathOptions={{ color, fillColor: color, fillOpacity: 0.12 }}>
+            <Popup>{z.name} — {z.type}</Popup>
+          </Circle>
+        );
+      })}
       {aircraft.filter(a => a.latitude && a.longitude).map(a => (
         <Marker key={`${a.icao24}-${alertIcaos.has(a.icao24)}`} position={[a.latitude, a.longitude]}
           icon={alertIcaos.has(a.icao24) ? alertIcon : normalIcon}>

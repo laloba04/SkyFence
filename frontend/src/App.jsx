@@ -154,13 +154,21 @@ export default function App() {
                    {zoneTypes.map(t => <option key={t} value={t}>{t === 'ALL' ? 'Todas las zonas' : t}</option>)}
                  </select>
                </div>
-               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+               <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '260px', overflowY: 'auto' }}>
                   {zones.length === 0 ? <li style={{ fontSize: '13px', color: '#9ca3af' }}>Cargando zonas...</li> :
-                   filteredZones.map(z => (
-                     <li key={z.id} style={{ fontSize: '14px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px', color: '#4b5563' }}>
-                       📍 <strong>{z.name}</strong> <span style={{ fontSize: '11px', background: '#e0f2fe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', float: 'right' }}>{z.type}</span>
-                     </li>
-                   ))
+                   filteredZones.map(z => {
+                     const badge = z.type === 'AIRPORT'
+                       ? { bg: '#e0f2fe', color: '#1e40af' }
+                       : z.type === 'NUCLEAR'
+                       ? { bg: '#fff7ed', color: '#c2410c' }
+                       : { bg: '#fee2e2', color: '#991b1b' };
+                     return (
+                       <li key={z.id} style={{ fontSize: '14px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px', color: '#4b5563' }}>
+                         📍 <strong>{z.name}</strong>
+                         <span style={{ fontSize: '11px', background: badge.bg, color: badge.color, padding: '2px 6px', borderRadius: '4px', float: 'right' }}>{z.type}</span>
+                       </li>
+                     );
+                   })
                   }
                </ul>
             </div>
