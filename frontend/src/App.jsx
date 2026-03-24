@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import DroneMap from './components/DroneMap';
+import ConfirmModal from './components/ConfirmModal';
 import AlertPanel from './components/AlertPanel';
+import ZoneManagerModal from './components/ZoneManagerModal';
 import { useWebSocket } from './hooks/useWebSocket';
 
 export default function App() {
@@ -12,6 +14,8 @@ export default function App() {
   const [clearedAt, setClearedAt] = useState(null);
   const [mockAlerts, setMockAlerts] = useState([]);
   const [zoneFilter, setZoneFilter] = useState('ALL');
+  const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
+  const [zoneToDelete, setZoneToDelete] = useState(null);
 
   const { alerts: rawAlerts, connected } = useWebSocket();
   
@@ -63,6 +67,21 @@ export default function App() {
   }, []);
 
   const handleClearAlerts = () => setClearedAt(new Date());
+
+  const executeDeleteZone = async () => {
+    if (!zoneToDelete) return;
+    try {
+      await axios.delete(`http://localhost:8080/api/zones/${zoneToDelete.id}`);
+      setZones(prev => prev.filter(z => z.id !== zoneToDelete.id));
+      setZoneToDelete(null);
+    } catch (e) {
+      alert("Error al eliminar la zona.");
+    }
+  };
+
+  const handleZoneAdded = (newZone) => {
+    setZones(prev => [...prev, newZone]);
+  };
 
   // Acción para el botón de simular intrusión
   const handleSimulateIntrusion = () => {
@@ -153,7 +172,10 @@ export default function App() {
             
             <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                 <h3 style={{ margin: 0, fontSize: '16px', color: '#374151' }}>Zonas vigiladas</h3>
+                 <h3 style={{ margin: 0, fontSize: '16px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Zonas vigiladas
+                    <button onClick={() => setIsZoneModalOpen(true)} style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}>+ Añadir</button>
+                 </h3>
                  <select value={zoneFilter} onChange={e => setZoneFilter(e.target.value)} style={{ fontSize: '12px', background: '#f3f4f6', padding: '2px 8px', borderRadius: '12px', color: '#4b5563', border: 'none', cursor: 'pointer', outline: 'none' }}>
                    {zoneTypes.map(t => <option key={t} value={t}>{t === 'ALL' ? 'Todas las zonas' : t}</option>)}
                  </select>
@@ -167,9 +189,10 @@ export default function App() {
                        ? { bg: '#fff7ed', color: '#c2410c' }
                        : { bg: '#fee2e2', color: '#991b1b' };
                      return (
-                       <li key={z.id} style={{ fontSize: '14px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px', color: '#4b5563' }}>
-                         📍 <strong>{z.name}</strong>
-                         <span style={{ fontSize: '11px', background: badge.bg, color: badge.color, padding: '2px 6px', borderRadius: '4px', float: 'right' }}>{z.type}</span>
+                       <li key={z.id} style={{ display: 'flex', alignItems: 'center', fontSize: '14px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px', color: '#4b5563' }}>
+                         <span style={{ flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>📍 <strong>{z.name}</strong></span>
+                         <span style={{ fontSize: '11px', background: badge.bg, color: badge.color, padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{z.type}</span>
+                         <button onClick={() => setZoneToDelete(z)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '14px', padding: '0 4px', transition: 'transform 0.1s' }} title="Eliminar zona" onMouseOver={(e) => e.target.style.transform='scale(1.2)'} onMouseOut={(e) => e.target.style.transform='scale(1)'}>🗑️</button>
                        </li>
                      );
                    })
@@ -180,6 +203,20 @@ export default function App() {
             <AlertPanel alerts={alerts} />
          </div>
       </div>
+
+      <ZoneManagerModal 
+        isOpen={isZoneModalOpen} 
+        onClose={() => setIsZoneModalOpen(false)} 
+        onZoneAdded={handleZoneAdded} 
+      />
+
+      <ConfirmModal
+        isOpen={zoneToDelete !== null}
+        title="Eliminar Zona Restringida"
+        message={`¿Estás seguro de que quieres eliminar la zona "${zoneToDelete?.name}"? Esta acción no se puede deshacer y las alertas asociadas seguirán existiendo en el histórico, pero la vigilancia de coordenadas cesará de inmediato.`}
+        onCancel={() => setZoneToDelete(null)}
+        onConfirm={executeDeleteZone}
+      />
     </div>
   );
 }
