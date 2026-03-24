@@ -6,7 +6,7 @@ export default function AlertPanel({ alerts }) {
       <h3 style={{ margin: '0 0 16px 0', color: '#ef4444', fontSize: '16px' }}>
         Alertas ({alerts.length})
       </h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '260px', overflowY: 'auto' }}>
         {alerts.slice(0, 5).map((a, i) => (
           <div key={i} style={{ background: '#fef2f2', borderLeft: `4px solid ${(a.severity || a.severidad) === 'HIGH' ? '#dc2626' : '#f97316'}`, borderRadius: '4px', padding: '12px', fontSize: '13px', color: '#7f1d1d' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
