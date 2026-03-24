@@ -73,7 +73,7 @@ public class OpenSkyService {
                     .uri("/states/all?lamin=35.9&lamax=43.7&lomin=-9.3&lomax=4.3");
             
             if (token != null) {
-                request.header("Authorization", "Bearer " + token);
+                request = request.header("Authorization", "Bearer " + token);
             }
 
             Map<String, Object> response = request.retrieve()
