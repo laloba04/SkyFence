@@ -109,7 +109,7 @@ export default function App() {
          <StatCard title="alertas" value={alerts.length} color={alerts.length > 0 ? '#ef4444' : '#1f2937'} />
          <StatCard title="en vuelo" value={aircraft.length} />
          <StatCard title="zonas vigiladas" value={zones.length} />
-         <StatCard title="intrusiones" value={alerts.length} />
+         <StatCard title="aeronaves en zona" value={alertIcaos.size} color={alertIcaos.size > 0 ? '#f97316' : '#1f2937'} />
          <StatCard title="actualización" value={lastUpdate} />
       </div>
 
@@ -136,10 +136,12 @@ export default function App() {
                <DroneMap aircraft={aircraft} zones={filteredZones} alertIcaos={alertIcaos} />
                
                {/* Leyenda */}
-               <div style={{ display: 'flex', gap: '24px', marginTop: '16px', fontSize: '13px', color: '#4b5563', justifyContent: 'center', fontWeight: '500' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: '#3b82f6', fontSize: '16px' }}>🔵</span> aeronave normal</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: '#ef4444', fontSize: '16px' }}>🔴</span> intrusión detectada</span>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: '#fca5a5', fontSize: '16px' }}>⭕</span> zona restringida</span>
+               <div style={{ display: 'flex', gap: '20px', marginTop: '16px', fontSize: '13px', color: '#4b5563', justifyContent: 'center', fontWeight: '500', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ color: '#3b82f6' }}>✈</span> aeronave normal</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ color: '#ef4444' }}>✈</span> intrusión detectada</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ color: '#3b82f6', fontSize: '16px' }}>○</span> AIRPORT</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ color: '#dc2626', fontSize: '16px' }}>○</span> MILITARY</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}><span style={{ color: '#f97316', fontSize: '16px' }}>○</span> NUCLEAR</span>
                </div>
             </div>
          </div>
