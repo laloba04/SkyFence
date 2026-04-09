@@ -8,7 +8,7 @@ export default function System() {
 
   useEffect(() => {
     const fetchHealth = () => {
-      axios.get('http://localhost:8080/actuator/health')
+      axios.get(`${import.meta.env.VITE_API_URL}/actuator/health`)
         .then(res => { setHealth(res.data); setError(false); })
         .catch(err => { console.error(err); setError(true); });
     };

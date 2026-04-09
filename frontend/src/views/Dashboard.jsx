@@ -30,11 +30,11 @@ export default function Dashboard() {
   const filteredZones = zoneFilter === 'ALL' ? zones : zones.filter(z => z.type === zoneFilter);
 
   useEffect(() => {
-    axios.get('http://localhost:8080/api/zones')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/zones`)
       .then(r => setZones(Array.isArray(r.data) ? r.data : []))
       .catch(e => console.error('Error al cargar zonas:', e));
 
-    const fetch = () => axios.get('http://localhost:8080/api/aircraft/live')
+    const fetch = () => axios.get(`${import.meta.env.VITE_API_URL}/api/aircraft/live`)
                               .then(r => { 
                                 if(Array.isArray(r.data) && r.data.length > 0) {
                                   setAircraft(prev => {
@@ -72,7 +72,7 @@ export default function Dashboard() {
   const executeDeleteZone = async () => {
     if (!zoneToDelete) return;
     try {
-      await axios.delete(`http://localhost:8080/api/zones/${zoneToDelete.id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/zones/${zoneToDelete.id}`);
       setZones(prev => prev.filter(z => z.id !== zoneToDelete.id));
       toast.success('Zona eliminada correctamente');
       setZoneToDelete(null);
@@ -122,7 +122,7 @@ export default function Dashboard() {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems: 'center', marginBottom:'20px', background: 'white', padding: '15px 20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
         <h2 style={{ margin: 0, fontSize: '20px', color: '#1f2937' }}>Visor Geográfico</h2>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <a href="http://localhost:8080/swagger-ui.html" target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#3b82f6', fontWeight: '600', fontSize: '14px' }}>Swagger API ↗</a>
+          <a href={`${import.meta.env.VITE_API_URL}/swagger-ui/index.html`} target="_blank" rel="noreferrer" style={{ textDecoration: 'none', color: '#3b82f6', fontWeight: '600', fontSize: '14px' }}>Swagger API ↗</a>
           <span style={{ color: connected ? '#10b981' : '#ef4444', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span>{connected ? '🟢' : '🔴'}</span> {connected ? 'conectado' : 'desconectado'}
           </span>

@@ -39,7 +39,7 @@ export default function ZoneManagerModal({ isOpen, onClose, onZoneAdded }) {
     }
 
     try {
-      const resp = await axios.post('http://localhost:8080/api/zones', payload);
+      const resp = await axios.post(`${import.meta.env.VITE_API_URL}/api/zones`, payload);
       onZoneAdded(resp.data);
       setFormData({ name: '', type: 'AIRPORT', latitude: '', longitude: '', radiusKm: '' });
       onClose();
