@@ -4,6 +4,8 @@ import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -14,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(RateLimitInterceptor.class);
 
     private final Map<String, Bucket> readBuckets = new ConcurrentHashMap<>();
     private final Map<String, Bucket> writeBuckets = new ConcurrentHashMap<>();
@@ -49,6 +53,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         }
 
         response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+        log.warn("SECURITY ALERT: Rate limit exceeded for IP: {} [{} {}] - Possible Intrusion Attempt", ip, method, request.getRequestURI());
         response.getWriter().write("429 Too Many Requests");
         return false;
     }

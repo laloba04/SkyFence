@@ -282,6 +282,26 @@ Cobertura incluida:
 - Histórico de alertas persistido en BD con consulta filtrada y paginada.
 - Refactorización a modelo de navegación SPA con React-Router.
 - Hardening de contenedores para ejecución segura (no-root).
-- Health Checks customizados con métricas centralizadas vía Prometheus + Grafana.
-- Autenticación con JWT y observabilidad para los JWT.
+- Autenticación con JWT.
 - Pipeline CI/CD con DevSecOps completo antes de hacer push/merge.
+
+---
+
+## Stack de Observabilidad
+
+SkyFence incluye un stack completo de monitorización y observabilidad para asegurar el rendimiento y la seguridad del sistema.
+
+| Servicio | URL | Descripción |
+|----------|-----|-------------|
+| **Grafana** | http://localhost:3001 | Dashboards de métricas (JVM, CPU) y Logs de Seguridad. |
+| **Prometheus** | http://localhost:9090 | Almacenamiento de métricas temporales de Actuator. |
+| **Loki** | http://localhost:3100 | Gestión centralizada de logs (formato JSON). |
+| **Dozzle** | http://localhost:8888 | Visualización de logs de contenedores en tiempo real. |
+
+### Dashboards Incluidos:
+- **SpringBoot APM:** Visualización detallada de la salud de la JVM, uso de memoria, hilos y latencia de peticiones.
+- **Security Alerts:** Panel basado en Loki para filtrar y visualizar alertas de intrusión (ej. Rate Limiting superado).
+
+### Mejores Prácticas de Logs:
+- Los logs de seguridad se emiten con el prefijo `SECURITY ALERT:` y nivel `WARN` para facilitar el filtrado en Loki.
+- Se utiliza el formato estructurado de SLF4J para asegurar que el contenido sea indexable.

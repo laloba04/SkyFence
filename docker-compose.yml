@@ -17,6 +17,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - skyfence_network
 
   backend:
     build: ./backend
@@ -33,6 +35,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - skyfence_network
 
   frontend:
     build: ./frontend
@@ -40,6 +44,12 @@ services:
       - '3000:8080'
     depends_on:
       - backend
+    networks:
+      - skyfence_network
+
+networks:
+  skyfence_network:
+    name: skyfence_network
 
 volumes:
   postgres_data:
