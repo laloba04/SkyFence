@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/zones")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:3000"})
 @Tag(name = "Zones", description = "Zonas restringidas del espacio aéreo")
 public class ZoneController {
 
