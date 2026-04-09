@@ -36,10 +36,10 @@ public class OpenSkyHealthIndicator implements HealthIndicator {
                     .withDetail("status", "reachable")
                     .build();
         } catch (Exception e) {
-            Health.Builder builder = e.getMessage() != null && e.getMessage().contains("429") 
+            Health.Builder builder = e.getMessage() != null && e.getMessage().contains("429")
                 ? Health.up().withDetail("status", "rate_limited")
-                : Health.down();
-            
+                : Health.unknown();
+
             return builder
                     .withDetail("service", "OpenSky Network API")
                     .withDetail("error", e.getMessage())
