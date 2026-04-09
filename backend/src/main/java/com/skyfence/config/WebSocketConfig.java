@@ -13,7 +13,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins("http://localhost:5173", "http://localhost:3000") // <-- Puerto 3000 de Docker
+                .setAllowedOrigins("http://localhost:5173", "http://localhost:3000", "https://sky-fence.vercel.app")
                 .withSockJS();
     }
 
