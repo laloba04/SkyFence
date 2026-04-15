@@ -30,8 +30,6 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       DB_USERNAME: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
-      OPENSKY_CLIENT_ID: ${OPENSKY_CLIENT_ID}
-      OPENSKY_CLIENT_SECRET: ${OPENSKY_CLIENT_SECRET}
     depends_on:
       postgres:
         condition: service_healthy

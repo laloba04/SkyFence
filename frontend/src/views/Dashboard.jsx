@@ -54,7 +54,7 @@ export default function Dashboard() {
                               })
                               .catch(e => {
                                 console.error('Error al obtener datos de aeronaves:', e);
-                                setFetchError('Límite de OpenSky o backend inactivo. Mostrando aeronaves de prueba.');
+                                setFetchError('Backend inactivo o sin datos. Mostrando aeronaves de prueba.');
                                 // 🚁 Inyectamos aviones simulados para no bloquear el diseño
                                 setAircraft([
                                   { icao24: 'sim1', callsign: 'SIM-MAD', latitude: 40.48, longitude: -3.50, altitude: 3000, velocity: 150 },
@@ -63,7 +63,7 @@ export default function Dashboard() {
                                 ]);
                               });
     fetch();
-    const interval = setInterval(fetch, 15000); // Subimos a 15s para no saturar OpenSky
+    const interval = setInterval(fetch, 15000);
     return () => clearInterval(interval);
   }, []);
 

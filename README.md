@@ -2,7 +2,7 @@
 
 > Detección de intrusiones en zonas restringidas en tiempo real
 
-Sistema de monitorización de aeronaves que consume datos reales de [OpenSky Network](https://opensky-network.org), aplica geofencing con la fórmula de Haversine sobre zonas sensibles (aeropuertos, bases militares, centrales nucleares) y emite alertas instantáneas al frontend vía WebSocket/STOMP.
+Sistema de monitorización de aeronaves que consume datos reales de [adsb.fi](https://opendata.adsb.fi), aplica geofencing con la fórmula de Haversine sobre zonas sensibles (aeropuertos, bases militares, centrales nucleares) y emite alertas instantáneas al frontend vía WebSocket/STOMP.
 
 ![Java](https://img.shields.io/badge/Java_17-ED8B00?style=flat&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot_3-6DB33F?style=flat&logo=springboot&logoColor=white)
@@ -22,7 +22,7 @@ Sistema de monitorización de aeronaves que consume datos reales de [OpenSky Net
 
 ## Funcionalidades Principales
 
-- **Monitorización en tiempo real:** Mapa interactivo con todas las aeronaves (actualizado vía OpenSky Network).
+- **Monitorización en tiempo real:** Mapa interactivo con todas las aeronaves (actualizado vía adsb.fi).
 - **Geofencing Dinámico (Haversine):** Cálculo de distancias a zonas restringidas como aeropuertos o bases de seguridad.
 - **Gestor de Zonas:** Panel integrado en UI para crear y eliminar zonas al vuelo con efecto inmediato.
 - **Simulador de Intrusiones:** Inyección de drones de prueba para validar el disparo visual y persistencia de alertas.
@@ -35,7 +35,7 @@ Sistema de monitorización de aeronaves que consume datos reales de [OpenSky Net
 ## Arquitectura y flujo del sistema
 
 ```
-OpenSky Network API
+adsb.fi API
         │  (cada 10 segundos)
         ▼
   OpenSkyService  ──► GeofenceService (Haversine)
@@ -50,7 +50,7 @@ OpenSky Network API
                     (mapa actualizado en tiempo real)
 ```
 
-1. El backend consulta OpenSky Network cada 10 segundos filtrando el espacio aéreo de España.
+1. El backend consulta adsb.fi cada 10 segundos filtrando el espacio aéreo de España.
 2. Por cada aeronave, calcula la distancia a todas las zonas restringidas con la fórmula de Haversine.
 3. Si una aeronave está dentro del radio de una zona, genera una alerta con severidad `HIGH` o `MEDIUM`.
 4. La alerta se publica por WebSocket al frontend de forma instantánea.
@@ -174,7 +174,7 @@ Documentación interactiva disponible en `http://localhost:8080/swagger-ui.html`
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | `GET` | `/api/aircraft` | Aeronaves persistidas en BD |
-| `GET` | `/api/aircraft/live` | Aeronaves en tiempo real desde OpenSky |
+| `GET` | `/api/aircraft/live` | Aeronaves en tiempo real desde adsb.fi |
 | `GET` | `/api/aircraft/flying` | Solo aeronaves en vuelo (no en tierra) |
 | `GET` | `/api/zones` | Zonas restringidas configuradas |
 | `POST` | `/api/zones` | Añadir nueva zona restringida |
@@ -192,7 +192,7 @@ Documentación interactiva disponible en `http://localhost:8080/swagger-ui.html`
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | `GET` | `/actuator/health` | Estado global de la aplicación (agregado) |
-| `GET` | `/actuator/health/opensky` | (Custom) Conectividad y latencia con la API de OpenSky |
+| `GET` | `/actuator/health/adsbfi` | (Custom) Conectividad con la API de adsb.fi |
 | `GET` | `/actuator/health/db` | Integridad de la conexión con PostgreSQL |
 | `GET` | `/actuator/health/websocket` | (Custom) Estado del mensaje Broker STOMP y sesiones en vivo |
 | `GET` | `/actuator/info` | Información de la aplicación |

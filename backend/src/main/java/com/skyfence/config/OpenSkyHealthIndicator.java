@@ -9,10 +9,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.time.Duration;
 
 /**
- * Custom health indicator that checks connectivity to the OpenSky Network API.
+ * Custom health indicator that checks connectivity to the adsb.fi API.
  * Reports UP if the API responds within the timeout, DOWN otherwise.
  */
-@Component("opensky")
+@Component("adsbfi")
 public class OpenSkyHealthIndicator implements HealthIndicator {
 
     private final WebClient webClient;

@@ -49,7 +49,7 @@ export default function System() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
           <ComponentCard name="Backend Principal (SkyFence API)" icon={Activity} isUp={health.status === 'UP'} statusDetails={{ status: health.status }} />
           <ComponentCard name="Base de Datos (PostgreSQL)" icon={Database} isUp={health.components?.db?.status === 'UP'} statusDetails={health.components?.db?.details || {}} />
-          <ComponentCard name="OpenSky Network API" icon={Cloud} isUp={health.components?.opensky?.status === 'UP'} statusDetails={health.components?.opensky?.details || {}} />
+          <ComponentCard name="adsb.fi API" icon={Cloud} isUp={health.components?.adsbfi?.status === 'UP'} statusDetails={health.components?.adsbfi?.details || {}} />
           <ComponentCard name="Broker STOMP (WebSockets)" icon={Radio} isUp={health.components?.websocket?.status === 'UP'} statusDetails={health.components?.websocket?.details || {}} />
         </div>
       )}
