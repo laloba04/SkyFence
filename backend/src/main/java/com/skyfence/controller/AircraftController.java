@@ -31,7 +31,7 @@ public class AircraftController {
     }
 
     @GetMapping("/live")
-    @Operation(summary = "Aeronaves en tiempo real desde OpenSky Network")
+    @Operation(summary = "Aeronaves en tiempo real desde adsb.fi")
     public List<Aircraft> getLive() {
         return openSkyService.fetchLiveAircraft();
     }
