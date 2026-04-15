@@ -18,7 +18,7 @@ public class OpenSkyHealthIndicator implements HealthIndicator {
     private final WebClient webClient;
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
-    public OpenSkyHealthIndicator(@Value("${opensky.api.url}") String baseUrl) {
+    public OpenSkyHealthIndicator(@Value("${flightdata.api.url}") String baseUrl) {
         this.webClient = WebClient.builder().baseUrl(baseUrl).build();
     }
 
@@ -26,22 +26,18 @@ public class OpenSkyHealthIndicator implements HealthIndicator {
     public Health health() {
         try {
             webClient.get()
-                    .uri("/states/all?lamin=40&lamax=41&lomin=-4&lomax=-3")
+                    .uri("/api/v2/lat/39.5/lon/-3.5/dist/1")
                     .retrieve()
                     .toBodilessEntity()
                     .block(TIMEOUT);
 
             return Health.up()
-                    .withDetail("service", "OpenSky Network API")
+                    .withDetail("service", "adsb.fi API")
                     .withDetail("status", "reachable")
                     .build();
         } catch (Exception e) {
-            Health.Builder builder = e.getMessage() != null && e.getMessage().contains("429")
-                ? Health.up().withDetail("status", "rate_limited")
-                : Health.unknown();
-
-            return builder
-                    .withDetail("service", "OpenSky Network API")
+            return Health.unknown()
+                    .withDetail("service", "adsb.fi API")
                     .withDetail("error", e.getMessage())
                     .build();
         }
