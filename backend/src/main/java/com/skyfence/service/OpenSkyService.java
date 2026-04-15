@@ -7,11 +7,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.BodyInserters;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -19,54 +19,26 @@ import java.util.Map;
 public class OpenSkyService {
 
     private static final Logger log = LoggerFactory.getLogger(OpenSkyService.class);
-    private static final Duration TIMEOUT = Duration.ofSeconds(10);
+    private static final Duration TIMEOUT = Duration.ofSeconds(15);
 
     private final WebClient webClient;
-    private final WebClient authClient;
     private final GeofenceService geofenceService;
     private final AlertService alertService;
 
-    private final String clientId;
-    private final String clientSecret;
-    private String accessToken = null;
-    private Instant tokenExpiry = Instant.MIN;
+    private final String username;
+    private final String password;
 
     public OpenSkyService(
             @Value("${opensky.api.url}") String baseUrl,
-            @Value("${opensky.api.client-id:}") String clientId,
-            @Value("${opensky.api.client-secret:}") String clientSecret,
-            GeofenceService geofenceService, 
+            @Value("${opensky.api.username:}") String username,
+            @Value("${opensky.api.password:}") String password,
+            GeofenceService geofenceService,
             AlertService alertService) {
         this.webClient = WebClient.builder().baseUrl(baseUrl).build();
-        this.authClient = WebClient.builder().baseUrl("https://auth.opensky-network.org/auth/realms/opensky-network/protocol/openid-connect/token").build();
         this.geofenceService = geofenceService;
         this.alertService = alertService;
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
-    }
-
-    private synchronized String getValidToken() {
-        if (clientId == null || clientId.isBlank()) return null; // Funciona en anónimo si no hay claves
-        if (accessToken != null && Instant.now().isBefore(tokenExpiry)) return accessToken; // Usa token en caché
-
-        try {
-            Map<String, Object> response = authClient.post()
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .body(BodyInserters.fromFormData("grant_type", "client_credentials")
-                            .with("client_id", clientId)
-                            .with("client_secret", clientSecret))
-                    .retrieve().bodyToMono(Map.class).timeout(TIMEOUT).block();
-
-            if (response != null && response.containsKey("access_token")) {
-                this.accessToken = (String) response.get("access_token");
-                this.tokenExpiry = Instant.now().plusSeconds(((Number) response.get("expires_in")).longValue() - 30);
-                log.info("OpenSky token obtenido, expira en {} segundos", ((Number) response.get("expires_in")).longValue());
-                return accessToken;
-            }
-        } catch (Exception e) {
-            log.warn("No se pudo obtener token de OpenSky: {}", e.getMessage());
-        }
-        return null;
+        this.username = username;
+        this.password = password;
     }
 
     @Scheduled(fixedDelayString = "${geofence.check.interval}")
@@ -77,12 +49,16 @@ public class OpenSkyService {
     @SuppressWarnings("unchecked")
     public List<Aircraft> fetchLiveAircraft() {
         try {
-            String token = getValidToken();
             WebClient.RequestHeadersSpec<?> request = webClient.get()
                     .uri("/states/all?lamin=35.9&lamax=43.7&lomin=-9.3&lomax=4.3");
-            
-            if (token != null) {
-                request = request.header("Authorization", "Bearer " + token);
+
+            if (username != null && !username.isBlank()) {
+                String credentials = Base64.getEncoder()
+                        .encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
+                request = request.header("Authorization", "Basic " + credentials);
+                log.debug("Usando Basic Auth con usuario: {}", username);
+            } else {
+                log.debug("Usando acceso anónimo a OpenSky");
             }
 
             Map<String, Object> response = request.retrieve()
@@ -110,6 +86,7 @@ public class OpenSkyService {
                 } catch (Exception ignored) {
                 }
             }
+            log.info("OpenSky: {} aeronaves obtenidas", list.size());
             return list;
         } catch (Exception e) {
             log.warn("Error al obtener aeronaves de OpenSky: {}", e.getMessage());
