@@ -8,10 +8,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -25,71 +23,73 @@ public class OpenSkyService {
     private final GeofenceService geofenceService;
     private final AlertService alertService;
 
-    private final String username;
-    private final String password;
-
     public OpenSkyService(
-            @Value("${opensky.api.url}") String baseUrl,
-            @Value("${opensky.api.username:}") String username,
-            @Value("${opensky.api.password:}") String password,
+            @Value("${flightdata.api.url}") String baseUrl,
             GeofenceService geofenceService,
             AlertService alertService) {
-        this.webClient = WebClient.builder().baseUrl(baseUrl).build();
+        this.webClient = WebClient.builder()
+                .baseUrl(baseUrl)
+                .codecs(c -> c.defaultCodecs().maxInMemorySize(4 * 1024 * 1024))
+                .build();
         this.geofenceService = geofenceService;
         this.alertService = alertService;
-        this.username = username;
-        this.password = password;
     }
 
     @Scheduled(fixedDelayString = "${geofence.check.interval}")
     public void checkAndAlert() {
-        fetchLiveAircraft().forEach(aircraft -> geofenceService.checkAircraft(aircraft).forEach(alertService::sendAlert));
+        fetchLiveAircraft().forEach(aircraft ->
+                geofenceService.checkAircraft(aircraft).forEach(alertService::sendAlert));
     }
 
     @SuppressWarnings("unchecked")
     public List<Aircraft> fetchLiveAircraft() {
         try {
-            WebClient.RequestHeadersSpec<?> request = webClient.get()
-                    .uri("/states/all?lamin=35.9&lamax=43.7&lomin=-9.3&lomax=4.3");
-
-            if (username != null && !username.isBlank()) {
-                String credentials = Base64.getEncoder()
-                        .encodeToString((username + ":" + password).getBytes(StandardCharsets.UTF_8));
-                request = request.header("Authorization", "Basic " + credentials);
-                log.debug("Usando Basic Auth con usuario: {}", username);
-            } else {
-                log.debug("Usando acceso anónimo a OpenSky");
-            }
-
-            Map<String, Object> response = request.retrieve()
+            // Centro de España, radio 700 km cubre la peninsula + islas
+            Map<String, Object> response = webClient.get()
+                    .uri("/api/v2/lat/39.5/lon/-3.5/dist/700")
+                    .retrieve()
                     .bodyToMono(Map.class)
                     .timeout(TIMEOUT)
                     .block();
 
             List<Aircraft> list = new ArrayList<>();
-            if (response == null || !response.containsKey("states")) {
+            if (response == null || !response.containsKey("ac")) {
+                log.warn("ADSB.fi: respuesta vacía o sin campo 'ac'");
                 return list;
             }
 
-            for (List<Object> s : (List<List<Object>>) response.get("states")) {
+            for (Map<String, Object> ac : (List<Map<String, Object>>) response.get("ac")) {
                 try {
-                    list.add(new Aircraft(
-                            (String) s.get(0),
-                            s.get(1) != null ? s.get(1).toString().trim() : "N/A",
-                            (String) s.get(2),
-                            s.get(6) != null ? ((Number) s.get(6)).doubleValue() : null,
-                            s.get(5) != null ? ((Number) s.get(5)).doubleValue() : null,
-                            s.get(7) != null ? ((Number) s.get(7)).doubleValue() : null,
-                            s.get(9) != null ? ((Number) s.get(9)).doubleValue() : null,
-                            (Boolean) s.get(8)
-                    ));
+                    String icao24 = (String) ac.get("hex");
+                    if (icao24 == null) continue;
+
+                    String callsign = ac.get("flight") != null
+                            ? ac.get("flight").toString().trim() : "N/A";
+                    if (callsign.isEmpty()) callsign = "N/A";
+
+                    Double lat = ac.get("lat") != null ? ((Number) ac.get("lat")).doubleValue() : null;
+                    Double lon = ac.get("lon") != null ? ((Number) ac.get("lon")).doubleValue() : null;
+                    if (lat == null || lon == null) continue;
+
+                    // alt_baro puede ser número (pies) o el string "ground"
+                    Object altBaro = ac.get("alt_baro");
+                    Double altMeters = (altBaro instanceof Number)
+                            ? ((Number) altBaro).doubleValue() * 0.3048 : null;
+
+                    // gs = ground speed en nudos → m/s
+                    Double velocityMs = ac.get("gs") != null
+                            ? ((Number) ac.get("gs")).doubleValue() * 0.514444 : null;
+
+                    boolean onGround = !(altBaro instanceof Number);
+
+                    list.add(new Aircraft(icao24, callsign, "Unknown", lat, lon, altMeters, velocityMs, onGround));
                 } catch (Exception ignored) {
                 }
             }
-            log.info("OpenSky: {} aeronaves obtenidas", list.size());
+            log.info("ADSB.fi: {} aeronaves obtenidas sobre España", list.size());
             return list;
         } catch (Exception e) {
-            log.warn("Error al obtener aeronaves de OpenSky: {}", e.getMessage());
+            log.warn("Error al obtener aeronaves de ADSB.fi: {}", e.getMessage());
             return new ArrayList<>();
         }
     }
