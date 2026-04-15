@@ -1,12 +1,15 @@
 package com.skyfence.service;
 
 import com.skyfence.model.Aircraft;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.BodyInserters;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +17,9 @@ import java.util.Map;
 
 @Service
 public class OpenSkyService {
+
+    private static final Logger log = LoggerFactory.getLogger(OpenSkyService.class);
+    private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
     private final WebClient webClient;
     private final WebClient authClient;
@@ -49,14 +55,17 @@ public class OpenSkyService {
                     .body(BodyInserters.fromFormData("grant_type", "client_credentials")
                             .with("client_id", clientId)
                             .with("client_secret", clientSecret))
-                    .retrieve().bodyToMono(Map.class).block();
+                    .retrieve().bodyToMono(Map.class).timeout(TIMEOUT).block();
 
             if (response != null && response.containsKey("access_token")) {
                 this.accessToken = (String) response.get("access_token");
                 this.tokenExpiry = Instant.now().plusSeconds(((Number) response.get("expires_in")).longValue() - 30);
+                log.info("OpenSky token obtenido, expira en {} segundos", ((Number) response.get("expires_in")).longValue());
                 return accessToken;
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.warn("No se pudo obtener token de OpenSky: {}", e.getMessage());
+        }
         return null;
     }
 
@@ -78,6 +87,7 @@ public class OpenSkyService {
 
             Map<String, Object> response = request.retrieve()
                     .bodyToMono(Map.class)
+                    .timeout(TIMEOUT)
                     .block();
 
             List<Aircraft> list = new ArrayList<>();
@@ -102,6 +112,7 @@ public class OpenSkyService {
             }
             return list;
         } catch (Exception e) {
+            log.warn("Error al obtener aeronaves de OpenSky: {}", e.getMessage());
             return new ArrayList<>();
         }
     }
