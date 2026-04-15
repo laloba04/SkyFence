@@ -46,7 +46,7 @@ public class OpenSkyService {
         try {
             // Centro de España, radio 700 km cubre la peninsula + islas
             Map<String, Object> response = webClient.get()
-                    .uri("/api/v2/lat/39.5/lon/-3.5/dist/700")
+                    .uri("/api/v2/lat/39.5/lon/-3.5/dist/250")
                     .retrieve()
                     .bodyToMono(Map.class)
                     .timeout(TIMEOUT)
