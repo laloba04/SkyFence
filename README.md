@@ -10,6 +10,17 @@ Sistema de monitorización de aeronaves que consume datos reales de [adsb.fi](ht
 ![React](https://img.shields.io/badge/React_18-20232A?style=flat&logo=react&logoColor=61DAFB)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 
+## Demo en producción
+
+| Servicio | URL |
+|----------|-----|
+| **Frontend** | https://sky-fence.vercel.app |
+| **Backend API** | https://skyfence-backend.onrender.com |
+| **Swagger UI** | https://skyfence-backend.onrender.com/swagger-ui/index.html |
+| **Health check** | https://skyfence-backend.onrender.com/actuator/health |
+
+> El backend en Render puede tardar ~30 s en responder si estuvo inactivo (free tier).
+
 ---
 
 ## Vista previa
