@@ -18,10 +18,14 @@ public class OpenSkyService {
 
     private static final Logger log = LoggerFactory.getLogger(OpenSkyService.class);
     private static final Duration TIMEOUT = Duration.ofSeconds(15);
+    private static final long CACHE_TTL_MS = 60_000; // 1 minuto entre llamadas a adsb.fi
 
     private final WebClient webClient;
     private final GeofenceService geofenceService;
     private final AlertService alertService;
+
+    private volatile List<Aircraft> cachedAircraft = new ArrayList<>();
+    private volatile long lastFetchTime = 0;
 
     public OpenSkyService(
             @Value("${flightdata.api.url}") String baseUrl,
@@ -43,8 +47,12 @@ public class OpenSkyService {
 
     @SuppressWarnings("unchecked")
     public List<Aircraft> fetchLiveAircraft() {
+        long now = System.currentTimeMillis();
+        if (now - lastFetchTime < CACHE_TTL_MS && !cachedAircraft.isEmpty()) {
+            return cachedAircraft;
+        }
+
         try {
-            // Centro de España, radio 700 km cubre la peninsula + islas
             Map<String, Object> response = webClient.get()
                     .uri("/api/v2/lat/39.5/lon/-3.5/dist/250")
                     .retrieve()
@@ -55,7 +63,7 @@ public class OpenSkyService {
             List<Aircraft> list = new ArrayList<>();
             if (response == null || !response.containsKey("ac")) {
                 log.warn("ADSB.fi: respuesta vacía o sin campo 'ac'");
-                return list;
+                return cachedAircraft; // devuelve la última lista conocida
             }
 
             for (Map<String, Object> ac : (List<Map<String, Object>>) response.get("ac")) {
@@ -71,12 +79,10 @@ public class OpenSkyService {
                     Double lon = ac.get("lon") != null ? ((Number) ac.get("lon")).doubleValue() : null;
                     if (lat == null || lon == null) continue;
 
-                    // alt_baro puede ser número (pies) o el string "ground"
                     Object altBaro = ac.get("alt_baro");
                     Double altMeters = (altBaro instanceof Number)
                             ? ((Number) altBaro).doubleValue() * 0.3048 : null;
 
-                    // gs = ground speed en nudos → m/s
                     Double velocityMs = ac.get("gs") != null
                             ? ((Number) ac.get("gs")).doubleValue() * 0.514444 : null;
 
@@ -87,10 +93,12 @@ public class OpenSkyService {
                 }
             }
             log.info("ADSB.fi: {} aeronaves obtenidas sobre España", list.size());
+            cachedAircraft = list;
+            lastFetchTime = now;
             return list;
         } catch (Exception e) {
             log.warn("Error al obtener aeronaves de ADSB.fi: {}", e.getMessage());
-            return new ArrayList<>();
+            return cachedAircraft; // devuelve la última lista conocida en caso de error
         }
     }
 }
