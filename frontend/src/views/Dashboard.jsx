@@ -17,6 +17,8 @@ export default function Dashboard() {
   const [zoneFilter, setZoneFilter] = useState('ALL');
   const [isZoneModalOpen, setIsZoneModalOpen] = useState(false);
   const [zoneToDelete, setZoneToDelete] = useState(null);
+  const [simZoneId, setSimZoneId] = useState('');
+  const [simulating, setSimulating] = useState(false);
 
   const { alerts: rawAlerts, connected } = useWebSocket();
   
@@ -86,32 +88,37 @@ export default function Dashboard() {
     toast.success(`Zona "${newZone.name}" creada con éxito`);
   };
 
-  // Acción para el botón de simular intrusión
-  const handleSimulateIntrusion = () => {
-    // Generamos un ID aleatorio entre 1000 y 9999 para que cada dron sea único
-    const randomId = Math.floor(Math.random() * 9000) + 1000;
-    const newIcao = `intruder-${randomId}`;
-    const newCallsign = `UAV-${randomId}`;
-
-    // Le damos una posición ligeramente aleatoria alrededor de Barajas
-    const randomLat = 40.498 + (Math.random() * 0.04 - 0.02);
-    const randomLon = -3.567 + (Math.random() * 0.04 - 0.02);
-
-    const mockIntruder = { icao24: newIcao, callsign: newCallsign, latitude: randomLat, longitude: randomLon, altitude: 120, velocity: 45 };
-    
-    const mockAlert = {
-      icao24: newIcao, 
-      callsign: newCallsign, 
-      zoneName: 'Aeropuerto Madrid-Barajas (Simulación)',
-      zoneType: 'AIRPORT',
-      distance: (Math.random() * 4.9 + 0.1).toFixed(2), // Distancia aleatoria entre 0.1 y 5.0 km
-      severity: 'HIGH',
-      detectedAt: new Date().toISOString()
-    };
-    
-    setAircraft(prev => [...prev, mockIntruder]); // Añadimos el nuevo dron sin borrar los anteriores
-    setMockAlerts(prev => [mockAlert, ...prev]);
-    setClearedAt(null); // Reseteamos el filtro de limpiar para que se vea la alerta
+  // Simula intrusión llamando al backend real (persiste alerta + WebSocket)
+  const handleSimulateIntrusion = async () => {
+    if (!simZoneId) { toast.error('Selecciona una zona primero'); return; }
+    setSimulating(true);
+    try {
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/simulate?zoneId=${simZoneId}`
+      );
+      const alert = res.data;
+      // Añadir aircraft ficticio al mapa en la posición de la zona
+      const zone = zones.find(z => z.id === Number(simZoneId));
+      if (zone) {
+        const fraction = 0.25;
+        const fakeLat = zone.latitude + (zone.radiusKm * fraction / 111.0);
+        const fakeLon = zone.longitude;
+        setAircraft(prev => [...prev, {
+          icao24: alert.aircraftIcao,
+          callsign: alert.aircraftCallsign,
+          latitude: fakeLat,
+          longitude: fakeLon,
+          altitude: 120,
+          velocity: 45
+        }]);
+      }
+      setClearedAt(null);
+      toast.success(`Intrusión simulada en "${alert.zoneName}"`);
+    } catch {
+      toast.error('Error al simular intrusión');
+    } finally {
+      setSimulating(false);
+    }
   };
 
   return (
@@ -152,7 +159,15 @@ export default function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                <h2 style={{ margin: 0, fontSize: '18px', color: '#374151' }}>Mapa en tiempo real</h2>
                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={handleSimulateIntrusion} style={{...btnStyle, background: '#3b82f6', color: 'white'}}>Simular intrusión ↑</button>
+                  <select value={simZoneId} onChange={e => setSimZoneId(e.target.value)}
+                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', background: 'white', cursor: 'pointer', maxWidth: '180px' }}>
+                    <option value="">Zona a simular…</option>
+                    {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+                  </select>
+                  <button onClick={handleSimulateIntrusion} disabled={simulating || !simZoneId}
+                    style={{...btnStyle, background: simZoneId ? '#3b82f6' : '#9ca3af', color: 'white', opacity: simulating ? 0.7 : 1}}>
+                    {simulating ? 'Simulando…' : 'Simular intrusión'}
+                  </button>
                   <button onClick={handleClearAlerts} style={{...btnStyle, background: '#e5e7eb', color: '#374151'}}>Limpiar alertas</button>
                </div>
             </div>
