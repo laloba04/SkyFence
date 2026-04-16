@@ -14,9 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class OpenSkyService {
+public class FlightDataService {
 
-    private static final Logger log = LoggerFactory.getLogger(OpenSkyService.class);
+    private static final Logger log = LoggerFactory.getLogger(FlightDataService.class);
     private static final Duration TIMEOUT = Duration.ofSeconds(15);
     private static final long CACHE_TTL_MS = 60_000; // 1 minuto entre llamadas a adsb.fi
 
@@ -27,7 +27,7 @@ public class OpenSkyService {
     private volatile List<Aircraft> cachedAircraft = new ArrayList<>();
     private volatile long lastFetchTime = 0;
 
-    public OpenSkyService(
+    public FlightDataService(
             @Value("${flightdata.api.url}") String baseUrl,
             GeofenceService geofenceService,
             AlertService alertService) {
@@ -98,7 +98,7 @@ public class OpenSkyService {
             return list;
         } catch (Exception e) {
             log.warn("Error al obtener aeronaves de ADSB.fi: {}", e.getMessage());
-            return cachedAircraft; // devuelve la última lista conocida en caso de error
+            return cachedAircraft;
         }
     }
 }

@@ -13,12 +13,12 @@ import java.time.Duration;
  * Reports UP if the API responds within the timeout, DOWN otherwise.
  */
 @Component("adsbfi")
-public class OpenSkyHealthIndicator implements HealthIndicator {
+public class FlightDataHealthIndicator implements HealthIndicator {
 
     private final WebClient webClient;
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
-    public OpenSkyHealthIndicator(@Value("${flightdata.api.url}") String baseUrl) {
+    public FlightDataHealthIndicator(@Value("${flightdata.api.url}") String baseUrl) {
         this.webClient = WebClient.builder().baseUrl(baseUrl).build();
     }
 

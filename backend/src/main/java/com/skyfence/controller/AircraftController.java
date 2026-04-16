@@ -2,7 +2,7 @@ package com.skyfence.controller;
 
 import com.skyfence.model.Aircraft;
 import com.skyfence.service.AircraftService;
-import com.skyfence.service.OpenSkyService;
+import com.skyfence.service.FlightDataService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,11 +17,11 @@ import java.util.List;
 public class AircraftController {
 
     private final AircraftService aircraftService;
-    private final OpenSkyService openSkyService;
+    private final FlightDataService flightDataService;
 
-    public AircraftController(AircraftService aircraftService, OpenSkyService openSkyService) {
+    public AircraftController(AircraftService aircraftService, FlightDataService flightDataService) {
         this.aircraftService = aircraftService;
-        this.openSkyService = openSkyService;
+        this.flightDataService = flightDataService;
     }
 
     @GetMapping
@@ -33,7 +33,7 @@ public class AircraftController {
     @GetMapping("/live")
     @Operation(summary = "Aeronaves en tiempo real desde adsb.fi")
     public List<Aircraft> getLive() {
-        return openSkyService.fetchLiveAircraft();
+        return flightDataService.fetchLiveAircraft();
     }
 
     @GetMapping("/flying")

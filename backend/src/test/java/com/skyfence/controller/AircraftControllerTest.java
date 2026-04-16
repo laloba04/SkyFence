@@ -2,7 +2,7 @@ package com.skyfence.controller;
 
 import com.skyfence.model.Aircraft;
 import com.skyfence.service.AircraftService;
-import com.skyfence.service.OpenSkyService;
+import com.skyfence.service.FlightDataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -28,7 +28,7 @@ class AircraftControllerTest {
     AircraftService aircraftService;
 
     @MockBean
-    OpenSkyService openSkyService;
+    FlightDataService flightDataService;
 
     @Test
     void getAll_shouldReturn200() throws Exception {
@@ -42,7 +42,7 @@ class AircraftControllerTest {
 
     @Test
     void getLive_shouldReturn200() throws Exception {
-        when(openSkyService.fetchLiveAircraft()).thenReturn(List.of());
+        when(flightDataService.fetchLiveAircraft()).thenReturn(List.of());
         mockMvc.perform(get("/api/aircraft/live"))
                 .andExpect(status().isOk());
     }
