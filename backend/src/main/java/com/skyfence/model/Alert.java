@@ -1,15 +1,25 @@
 package com.skyfence.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "alerts")
 public class Alert {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     private String aircraftIcao;
     private String aircraftCallsign;
     private String zoneName;
     private String zoneType;
     private Double distanceKm;
-    private LocalDateTime detectedAt;
     private String severity;
+
+    @Column(nullable = false)
+    private LocalDateTime detectedAt;
 
     public Alert() {}
 
@@ -24,6 +34,8 @@ public class Alert {
         this.detectedAt = LocalDateTime.now();
     }
 
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public String getAircraftIcao() { return aircraftIcao; }
     public void setAircraftIcao(String aircraftIcao) { this.aircraftIcao = aircraftIcao; }
     public String getAircraftCallsign() { return aircraftCallsign; }
