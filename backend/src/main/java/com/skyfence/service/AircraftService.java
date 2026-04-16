@@ -4,6 +4,8 @@ import com.skyfence.model.Aircraft;
 import com.skyfence.repository.AircraftRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -27,11 +29,16 @@ public class AircraftService {
     }
 
     public void upsertAll(List<Aircraft> incoming) {
-        List<String> icaos = incoming.stream().map(Aircraft::getIcao24).collect(Collectors.toList());
-        Map<String, Aircraft> existing = aircraftRepository.findByIcao24In(icaos).stream()
-                .collect(Collectors.toMap(Aircraft::getIcao24, Function.identity()));
+        // Deduplicar por ICAO: adsb.fi puede devolver el mismo hex más de una vez
+        Map<String, Aircraft> incomingMap = new LinkedHashMap<>();
+        for (Aircraft a : incoming) incomingMap.putIfAbsent(a.getIcao24(), a);
+        List<Aircraft> unique = new ArrayList<>(incomingMap.values());
 
-        List<Aircraft> toSave = incoming.stream().map(a -> {
+        List<String> icaos = unique.stream().map(Aircraft::getIcao24).collect(Collectors.toList());
+        Map<String, Aircraft> existing = aircraftRepository.findByIcao24In(icaos).stream()
+                .collect(Collectors.toMap(Aircraft::getIcao24, Function.identity(), (a, b) -> a));
+
+        List<Aircraft> toSave = unique.stream().map(a -> {
             Aircraft entity = existing.getOrDefault(a.getIcao24(), a);
             if (entity != a) {
                 entity.setCallsign(a.getCallsign());
