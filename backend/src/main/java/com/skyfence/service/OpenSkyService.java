@@ -61,12 +61,12 @@ public class OpenSkyService {
                     .block();
 
             List<Aircraft> list = new ArrayList<>();
-            if (response == null || !response.containsKey("ac")) {
-                log.warn("ADSB.fi: respuesta vacía o sin campo 'ac'");
-                return cachedAircraft; // devuelve la última lista conocida
+            if (response == null || !response.containsKey("aircraft")) {
+                log.warn("ADSB.fi: respuesta vacía o sin campo 'aircraft'");
+                return cachedAircraft;
             }
 
-            for (Map<String, Object> ac : (List<Map<String, Object>>) response.get("ac")) {
+            for (Map<String, Object> ac : (List<Map<String, Object>>) response.get("aircraft")) {
                 try {
                     String icao24 = (String) ac.get("hex");
                     if (icao24 == null) continue;
