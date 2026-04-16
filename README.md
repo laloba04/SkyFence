@@ -38,7 +38,7 @@ Sistema de monitorización de aeronaves que consume datos reales de [adsb.fi](ht
 adsb.fi API
         │  (cada 10 segundos)
         ▼
-  OpenSkyService  ──► GeofenceService (Haversine)
+  FlightDataService  ──► GeofenceService (Haversine)
                               │
                     aeronave dentro de zona?
                               │
@@ -96,7 +96,7 @@ SkyFence/
 │   │   │   ├── AircraftService.java
 │   │   │   ├── GeofenceService.java
 │   │   │   ├── AlertService.java
-│   │   │   └── OpenSkyService.java
+│   │   │   └── FlightDataService.java
 │   │   ├── repository/
 │   │   │   ├── AircraftRepository.java
 │   │   │   └── RestrictedZoneRepository.java
