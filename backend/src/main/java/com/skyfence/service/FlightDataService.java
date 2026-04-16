@@ -23,6 +23,7 @@ public class FlightDataService {
     private final WebClient webClient;
     private final GeofenceService geofenceService;
     private final AlertService alertService;
+    private final AircraftService aircraftService;
 
     private volatile List<Aircraft> cachedAircraft = new ArrayList<>();
     private volatile long lastFetchTime = 0;
@@ -30,7 +31,9 @@ public class FlightDataService {
     public FlightDataService(
             @Value("${flightdata.api.url}") String baseUrl,
             GeofenceService geofenceService,
-            AlertService alertService) {
+            AlertService alertService,
+            AircraftService aircraftService) {
+        this.aircraftService = aircraftService;
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
                 .codecs(c -> c.defaultCodecs().maxInMemorySize(4 * 1024 * 1024))
@@ -93,6 +96,7 @@ public class FlightDataService {
                 }
             }
             log.info("ADSB.fi: {} aeronaves obtenidas sobre España", list.size());
+            aircraftService.upsertAll(list);
             cachedAircraft = list;
             lastFetchTime = now;
             return list;
