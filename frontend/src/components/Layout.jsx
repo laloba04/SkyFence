@@ -16,9 +16,9 @@ export default function Layout() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f7fa', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f5f7fa', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       {/* Sidebar Oscuro y Premium */}
-      <aside style={{ width: '280px', background: '#111827', color: 'white', display: 'flex', flexDirection: 'column', boxShadow: '4px 0 10px rgba(0,0,0,0.1)', zIndex: 10 }}>
+      <aside style={{ width: '280px', flexShrink: 0, background: '#111827', color: 'white', display: 'flex', flexDirection: 'column', boxShadow: '4px 0 10px rgba(0,0,0,0.1)', zIndex: 10, overflowY: 'auto' }}>
         
         {/* Logo/Header */}
         <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #1f2937' }}>
@@ -64,7 +64,7 @@ export default function Layout() {
       </aside>
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, position: 'relative', overflowX: 'hidden', overflowY: 'auto' }}>
+      <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
         <Outlet />
       </main>
     </div>

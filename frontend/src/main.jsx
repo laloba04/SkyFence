@@ -2,6 +2,17 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 
+// Bloquear scroll global — solo scrollea el <main> del Layout
+const globalStyle = document.createElement('style');
+globalStyle.textContent = `
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+`;
+document.head.appendChild(globalStyle);
+
 // Solución robusta para Leaflet: Configurar antes de inicializar React
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
