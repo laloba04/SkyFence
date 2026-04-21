@@ -1,6 +1,11 @@
 package com.skyfence.service;
 
 import com.skyfence.model.Aircraft;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.CircuitBreaker;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,34 +17,48 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 @Service
 public class FlightDataService {
 
     private static final Logger log = LoggerFactory.getLogger(FlightDataService.class);
     private static final Duration TIMEOUT = Duration.ofSeconds(15);
-    private static final long CACHE_TTL_MS = 60_000; // 1 minuto entre llamadas a adsb.fi
+    private static final long CACHE_TTL_MS = 60_000;
 
     private final WebClient webClient;
     private final GeofenceService geofenceService;
     private final AlertService alertService;
     private final AircraftService aircraftService;
+    private final Retry retry;
+    private final CircuitBreaker circuitBreaker;
 
-    private volatile List<Aircraft> cachedAircraft = new ArrayList<>();
-    private volatile long lastFetchTime = 0;
+    volatile List<Aircraft> cachedAircraft = new ArrayList<>();
+    volatile long lastFetchTime = 0;
 
     public FlightDataService(
             @Value("${flightdata.api.url}") String baseUrl,
             GeofenceService geofenceService,
             AlertService alertService,
-            AircraftService aircraftService) {
-        this.aircraftService = aircraftService;
+            AircraftService aircraftService,
+            RetryRegistry retryRegistry,
+            CircuitBreakerRegistry circuitBreakerRegistry) {
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
                 .codecs(c -> c.defaultCodecs().maxInMemorySize(4 * 1024 * 1024))
                 .build();
         this.geofenceService = geofenceService;
         this.alertService = alertService;
+        this.aircraftService = aircraftService;
+        this.retry = retryRegistry.retry("flightData");
+        this.circuitBreaker = circuitBreakerRegistry.circuitBreaker("flightData");
+
+        this.retry.getEventPublisher().onRetry(e ->
+                log.warn("SECURITY ALERT: adsb.fi no responde, reintentando... (intento {}/3)",
+                        e.getNumberOfRetryAttempts() + 1));
+        this.circuitBreaker.getEventPublisher()
+                .onStateTransition(e -> log.warn("SECURITY ALERT: Estado de conexión con adsb.fi → {}",
+                        e.getStateTransition()));
     }
 
     @Scheduled(fixedDelayString = "${geofence.check.interval}")
@@ -55,62 +74,78 @@ public class FlightDataService {
             return cachedAircraft;
         }
 
+        Supplier<Map<String, Object>> resilientCall = CircuitBreaker.decorateSupplier(
+                circuitBreaker,
+                Retry.decorateSupplier(retry, this::fetchFromApi));
+
         try {
-            Map<String, Object> response = webClient.get()
-                    .uri("/api/v2/lat/39.5/lon/-3.5/dist/250")
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .timeout(TIMEOUT)
-                    .block();
-
-            List<Aircraft> list = new ArrayList<>();
-            if (response == null || !response.containsKey("aircraft")) {
-                log.warn("ADSB.fi: respuesta vacía o sin campo 'aircraft'");
-                return cachedAircraft;
-            }
-
-            for (Map<String, Object> ac : (List<Map<String, Object>>) response.get("aircraft")) {
-                try {
-                    String icao24 = (String) ac.get("hex");
-                    if (icao24 == null) continue;
-
-                    String callsign = ac.get("flight") != null
-                            ? ac.get("flight").toString().trim() : "N/A";
-                    if (callsign.isEmpty()) callsign = "N/A";
-
-                    Double lat = ac.get("lat") != null ? ((Number) ac.get("lat")).doubleValue() : null;
-                    Double lon = ac.get("lon") != null ? ((Number) ac.get("lon")).doubleValue() : null;
-                    if (lat == null || lon == null) continue;
-
-                    Object altBaro = ac.get("alt_baro");
-                    Double altMeters = (altBaro instanceof Number)
-                            ? ((Number) altBaro).doubleValue() * 0.3048 : null;
-
-                    Double velocityMs = ac.get("gs") != null
-                            ? ((Number) ac.get("gs")).doubleValue() * 0.514444 : null;
-
-                    boolean onGround = !(altBaro instanceof Number);
-
-                    list.add(new Aircraft(icao24, callsign, countryFromIcao(icao24), lat, lon, altMeters, velocityMs, onGround));
-                } catch (Exception ignored) {
-                }
-            }
-            log.info("ADSB.fi: {} aeronaves obtenidas sobre España", list.size());
-            aircraftService.upsertAll(list);
-            cachedAircraft = list;
-            lastFetchTime = now;
-            return list;
+            Map<String, Object> response = resilientCall.get();
+            return parseAndCache(response, now);
+        } catch (CallNotPermittedException e) {
+            log.warn("SECURITY ALERT: Circuit breaker OPEN para adsb.fi — usando caché local ({} aeronaves)",
+                    cachedAircraft.size());
+            return cachedAircraft;
         } catch (Exception e) {
-            log.warn("Error al obtener aeronaves de ADSB.fi: {}", e.getMessage());
+            log.warn("SECURITY ALERT: adsb.fi no disponible tras reintentos — usando caché local. Causa: {}",
+                    e.getMessage());
             return cachedAircraft;
         }
+    }
+
+    protected Map<String, Object> fetchFromApi() {
+        return webClient.get()
+                .uri("/api/v2/lat/39.5/lon/-3.5/dist/250")
+                .retrieve()
+                .bodyToMono(Map.class)
+                .timeout(TIMEOUT)
+                .block();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Aircraft> parseAndCache(Map<String, Object> response, long fetchTime) {
+        if (response == null || !response.containsKey("aircraft")) {
+            log.warn("ADSB.fi: respuesta vacía o sin campo 'aircraft'");
+            return cachedAircraft;
+        }
+
+        List<Aircraft> list = new ArrayList<>();
+        for (Map<String, Object> ac : (List<Map<String, Object>>) response.get("aircraft")) {
+            try {
+                String icao24 = (String) ac.get("hex");
+                if (icao24 == null) continue;
+
+                String callsign = ac.get("flight") != null
+                        ? ac.get("flight").toString().trim() : "N/A";
+                if (callsign.isEmpty()) callsign = "N/A";
+
+                Double lat = ac.get("lat") != null ? ((Number) ac.get("lat")).doubleValue() : null;
+                Double lon = ac.get("lon") != null ? ((Number) ac.get("lon")).doubleValue() : null;
+                if (lat == null || lon == null) continue;
+
+                Object altBaro = ac.get("alt_baro");
+                Double altMeters = (altBaro instanceof Number)
+                        ? ((Number) altBaro).doubleValue() * 0.3048 : null;
+
+                Double velocityMs = ac.get("gs") != null
+                        ? ((Number) ac.get("gs")).doubleValue() * 0.514444 : null;
+
+                boolean onGround = !(altBaro instanceof Number);
+
+                list.add(new Aircraft(icao24, callsign, countryFromIcao(icao24), lat, lon, altMeters, velocityMs, onGround));
+            } catch (Exception ignored) {
+            }
+        }
+        log.info("ADSB.fi: {} aeronaves obtenidas sobre España", list.size());
+        aircraftService.upsertAll(list);
+        cachedAircraft = list;
+        lastFetchTime = fetchTime;
+        return list;
     }
 
     private static String countryFromIcao(String hex) {
         if (hex == null || hex.isEmpty()) return "Unknown";
         try {
             int code = Integer.parseInt(hex.trim(), 16);
-            // Europa
             if (code >= 0x300000 && code <= 0x33FFFF) return "Italy";
             if (code >= 0x340000 && code <= 0x37FFFF) return "Spain";
             if (code >= 0x380000 && code <= 0x3BFFFF) return "France";
@@ -138,25 +173,20 @@ public class FlightDataService {
             if (code >= 0x4D8000 && code <= 0x4DFFFF) return "Slovenia";
             if (code >= 0x4E0000 && code <= 0x4E7FFF) return "Serbia";
             if (code >= 0x4E8000 && code <= 0x4EFFFF) return "Ukraine";
-            // Rusia y exURSS
             if (code >= 0x100000 && code <= 0x1FFFFF) return "Russia";
-            // Oriente Medio
             if (code >= 0x710000 && code <= 0x717FFF) return "Saudi Arabia";
             if (code >= 0x730000 && code <= 0x737FFF) return "UAE";
             if (code >= 0x738000 && code <= 0x73FFFF) return "Israel";
             if (code >= 0x740000 && code <= 0x747FFF) return "Qatar";
-            // Asia-Pacífico
             if (code >= 0x780000 && code <= 0x7BFFFF) return "China";
             if (code >= 0x7C0000 && code <= 0x7FFFFF) return "Australia";
             if (code >= 0x800000 && code <= 0x83FFFF) return "India";
             if (code >= 0x840000 && code <= 0x87FFFF) return "Japan";
             if (code >= 0x880000 && code <= 0x887FFF) return "South Korea";
-            // América
             if (code >= 0xA00000 && code <= 0xAFFFFF) return "United States";
             if (code >= 0xC00000 && code <= 0xC3FFFF) return "Canada";
             if (code >= 0x0D0000 && code <= 0x0FFFFF) return "Mexico";
             if (code >= 0xE40000 && code <= 0xE7FFFF) return "Brazil";
-            // África
             if (code >= 0x008000 && code <= 0x00FFFF) return "South Africa";
             if (code >= 0x010000 && code <= 0x017FFF) return "Egypt";
         } catch (NumberFormatException ignored) {
