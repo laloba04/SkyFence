@@ -38,8 +38,9 @@ Sistema de monitorización de aeronaves que consume datos reales de [adsb.fi](ht
 - **Gestor de Zonas:** Panel integrado en UI para crear y eliminar zonas al vuelo con efecto inmediato.
 - **Simulador de Intrusiones:** Inyección de drones de prueba para validar el disparo visual y persistencia de alertas.
 - **Alertas STOMP / WebSocket:** Notificaciones asíncronas de bajísima latencia sin recargar la web.
+- **Histórico de alertas:** Consulta paginada con filtros por severidad y rango de horas, persistido en PostgreSQL.
 - **Rate Limiting Anti-DoS:** Protección proactiva de la API limitando peticiones abusivas (Bucket4j).
-- **Observabilidad:** Control de salud de red y BD mediante Spring Actuator.
+- **Observabilidad completa:** Stack Prometheus + Grafana + Loki + Promtail + Dozzle con dashboards preconfigurados.
 
 ---
 
@@ -81,6 +82,8 @@ adsb.fi API
 | ORM | Spring Data JPA + Hibernate |
 | API HTTP | WebClient (WebFlux) |
 | Alertas en tiempo real | Spring WebSocket + STOMP + SockJS |
+| Rate Limiting | Bucket4j |
+| Métricas | Micrometer + Prometheus |
 | Documentación API | SpringDoc OpenAPI (Swagger) |
 | Tests unitarios | JUnit 5 + Mockito |
 | Tests de integración | MockMvc |
@@ -88,6 +91,7 @@ adsb.fi API
 | Mapa | Leaflet + React-Leaflet |
 | Cliente WebSocket | @stomp/stompjs + sockjs-client |
 | Contenedores | Docker + Docker Compose |
+| Monitorización | Grafana + Prometheus + Loki + Promtail + Dozzle |
 
 ---
 
@@ -98,23 +102,31 @@ SkyFence/
 ├── backend/
 │   ├── src/main/java/com/skyfence/
 │   │   ├── config/
+│   │   │   ├── FlightDataHealthIndicator.java
+│   │   │   ├── OpenApiConfig.java
+│   │   │   ├── RateLimitInterceptor.java
+│   │   │   ├── WebMvcConfig.java
 │   │   │   ├── WebSocketConfig.java
-│   │   │   └── OpenApiConfig.java
+│   │   │   └── WebSocketHealthIndicator.java
 │   │   ├── controller/
 │   │   │   ├── AircraftController.java
+│   │   │   ├── AlertController.java
+│   │   │   ├── RootController.java
+│   │   │   ├── SimulationController.java
 │   │   │   └── ZoneController.java
 │   │   ├── service/
 │   │   │   ├── AircraftService.java
-│   │   │   ├── GeofenceService.java
 │   │   │   ├── AlertService.java
-│   │   │   └── FlightDataService.java
+│   │   │   ├── FlightDataService.java
+│   │   │   └── GeofenceService.java
 │   │   ├── repository/
 │   │   │   ├── AircraftRepository.java
+│   │   │   ├── AlertRepository.java
 │   │   │   └── RestrictedZoneRepository.java
 │   │   ├── model/
 │   │   │   ├── Aircraft.java
-│   │   │   ├── RestrictedZone.java
-│   │   │   └── Alert.java
+│   │   │   ├── Alert.java
+│   │   │   └── RestrictedZone.java
 │   │   └── SkyFenceApplication.java
 │   └── src/test/java/com/skyfence/
 │       ├── service/
@@ -125,12 +137,30 @@ SkyFence/
 │           └── ZoneControllerTest.java      (MockMvc — 4 casos)
 ├── frontend/
 │   └── src/
+│       ├── views/
+│       │   ├── Dashboard.jsx
+│       │   ├── Alerts.jsx
+│       │   ├── Login.jsx
+│       │   ├── System.jsx
+│       │   ├── Users.jsx
+│       │   └── Zones.jsx
 │       ├── components/
+│       │   ├── AlertPanel.jsx
+│       │   ├── ConfirmModal.jsx
 │       │   ├── DroneMap.jsx
-│       │   └── AlertPanel.jsx
+│       │   ├── Layout.jsx
+│       │   └── ZoneManagerModal.jsx
 │       ├── hooks/
 │       │   └── useWebSocket.js
-│       └── App.jsx
+│       ├── App.jsx
+│       └── main.jsx
+├── monitoring/
+│   ├── docker-compose.yml
+│   ├── prometheus.yml
+│   └── provisioning/
+│       ├── dashboards/
+│       │   └── json/skyfence.json
+│       └── datasources/
 ├── docker-compose.yml
 └── README.md
 ```
@@ -190,6 +220,8 @@ Documentación interactiva disponible en `http://localhost:8080/swagger-ui.html`
 | `GET` | `/api/zones` | Zonas restringidas configuradas |
 | `POST` | `/api/zones` | Añadir nueva zona restringida |
 | `DELETE` | `/api/zones/{id}` | Eliminar zona por ID |
+| `GET` | `/api/alerts` | Histórico paginado de alertas (`?page`, `?size`, `?severity`, `?hours`) |
+| `POST` | `/api/simulate` | Simular una intrusión en una zona (`?zoneId`) |
 
 > **Nota Anti-DoS:** Todos los endpoints de la API clásica están protegidos por Rate Limiting. Superar el límite establecido devolverá un código HTTP `429 Too Many Requests`.
 
@@ -208,6 +240,7 @@ Documentación interactiva disponible en `http://localhost:8080/swagger-ui.html`
 | `GET` | `/actuator/health/websocket` | (Custom) Estado del mensaje Broker STOMP y sesiones en vivo |
 | `GET` | `/actuator/info` | Información de la aplicación |
 | `GET` | `/actuator/metrics` | Métricas del sistema (JVM, HTTP, etc.) |
+| `GET` | `/actuator/prometheus` | Métricas en formato Prometheus (scrapeadas por Grafana) |
 
 > Se han implementado *Health Checks* personalizados para emitir diagnósticos en formato JSON puro. La arquitectura permite extenderlos o monitorizarlos directamente con Prometheus + Grafana.
 
@@ -290,11 +323,12 @@ Cobertura incluida:
 
 ## Roadmap y futuras mejoras
 
-- Histórico de alertas persistido en BD con consulta filtrada y paginada.
-- Refactorización a modelo de navegación SPA con React-Router.
-- Hardening de contenedores para ejecución segura (no-root).
-- Autenticación con JWT.
-- Pipeline CI/CD con DevSecOps completo antes de hacer push/merge.
+- Autenticación con JWT y gestión de roles.
+- Hardening de seguridad: profiles Spring Boot (dev/prod), headers HTTP de seguridad.
+- Pipeline CI/CD con DevSecOps completo (SAST, cobertura, deploy automático).
+- Resilience layer: retry logic y circuit breaker para llamadas a adsb.fi.
+- Métricas de negocio personalizadas en Grafana (alertas/hora, detecciones por severidad).
+- Logging estructurado con correlation IDs para trazabilidad distribuida.
 
 ---
 
@@ -302,9 +336,13 @@ Cobertura incluida:
 
 SkyFence incluye un stack completo de monitorización y observabilidad para asegurar el rendimiento y la seguridad del sistema.
 
+```bash
+docker-compose -f monitoring/docker-compose.yml up
+```
+
 | Servicio | URL | Descripción |
 |----------|-----|-------------|
-| **Grafana** | http://localhost:3001 | Dashboards de métricas (JVM, CPU) y Logs de Seguridad. |
+| **Grafana** | http://localhost:3001 | Dashboards de métricas (JVM, CPU, HTTP) y Logs de Seguridad. |
 | **Prometheus** | http://localhost:9090 | Almacenamiento de métricas temporales de Actuator. |
 | **Loki** | http://localhost:3100 | Gestión centralizada de logs (formato JSON). |
 | **Dozzle** | http://localhost:8888 | Visualización de logs de contenedores en tiempo real. |
