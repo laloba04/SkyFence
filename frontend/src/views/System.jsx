@@ -2,6 +2,19 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Activity, Database, Cloud, Radio } from 'lucide-react';
 
+const SkeletonCard = ({ delay = 0 }) => (
+  <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', borderTop: '4px solid #e5e7eb' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+      <div style={{ background: '#e5e7eb', width: '48px', height: '48px', borderRadius: '50%', flexShrink: 0, animation: `skeletonPulse 1.5s ease-in-out ${delay}s infinite` }} />
+      <div style={{ flex: 1 }}>
+        <div style={{ height: '18px', background: '#e5e7eb', borderRadius: '4px', marginBottom: '8px', width: '60%', animation: `skeletonPulse 1.5s ease-in-out ${delay}s infinite` }} />
+        <div style={{ height: '14px', background: '#e5e7eb', borderRadius: '4px', width: '35%', animation: `skeletonPulse 1.5s ease-in-out ${delay}s infinite` }} />
+      </div>
+    </div>
+    <div style={{ height: '72px', background: '#111827', borderRadius: '8px', opacity: 0.08, animation: `skeletonPulse 1.5s ease-in-out ${delay}s infinite` }} />
+  </div>
+);
+
 export default function System() {
   const [health, setHealth] = useState(null);
   const [error, setError] = useState(false);
@@ -36,6 +49,7 @@ export default function System() {
 
   return (
     <div style={{ padding: '32px' }}>
+      <style>{`@keyframes skeletonPulse { 0%,100%{opacity:1}50%{opacity:.4} }`}</style>
       <header style={{ marginBottom: '32px' }}>
         <h1 style={{ margin: 0, fontSize: '28px', color: '#111827', display: 'flex', alignItems: 'center', gap: '12px' }}><Activity color="#3b82f6" /> Salud del Sistema</h1>
         <p style={{ margin: '8px 0 0 0', color: '#6b7280' }}>Monitorización en tiempo real de los servicios y dependencias (Spring Actuator).</p>
@@ -44,7 +58,9 @@ export default function System() {
       {error ? (
         <div style={{ background: '#fee2e2', color: '#991b1b', padding: '16px', borderRadius: '8px', fontWeight: '500' }}>⚠️ Error conectando con el backend de Actuator en :8080. Servidor apagado o inaccesible.</div>
       ) : !health ? (
-        <p style={{ color: '#6b7280' }}>Cargando telemetría de salud...</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
+          {[0, 1, 2, 3].map(i => <SkeletonCard key={i} delay={i * 0.1} />)}
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
           <ComponentCard name="Backend Principal (SkyFence API)" icon={Activity} isUp={health.status === 'UP'} statusDetails={{ status: health.status }} />
