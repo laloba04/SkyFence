@@ -1,8 +1,9 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheck, Map, Bell, MapPin, Activity, Users, LogOut } from 'lucide-react';
 
 export default function Layout() {
   const navigate = useNavigate();
+  const location = useLocation();
   const navItems = [
     { name: 'Dashboard Real-Time', path: '/dashboard', icon: Map },
     { name: 'Histórico Alertas', path: '/alerts', icon: Bell },
@@ -65,7 +66,10 @@ export default function Layout() {
 
       {/* Main Content Area */}
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
-        <Outlet />
+        <style>{`@keyframes fadeIn { from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)} }`}</style>
+        <div key={location.pathname} style={{ animation: 'fadeIn 0.18s ease-out' }}>
+          <Outlet />
+        </div>
       </main>
     </div>
   );
