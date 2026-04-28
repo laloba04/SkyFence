@@ -85,6 +85,7 @@ adsb.fi API
 | Rate Limiting | Bucket4j |
 | Métricas | Micrometer + Prometheus |
 | Documentación API | SpringDoc OpenAPI (Swagger) |
+| Resiliencia | Resilience4j (retry + circuit breaker) |
 | Tests unitarios | JUnit 5 + Mockito |
 | Tests de integración | MockMvc |
 | Frontend | React 18 + Vite |
@@ -130,11 +131,12 @@ SkyFence/
 │   │   └── SkyFenceApplication.java
 │   └── src/test/java/com/skyfence/
 │       ├── service/
-│       │   ├── GeofenceServiceTest.java     (Mockito — 7 casos)
-│       │   └── AircraftServiceTest.java     (Mockito — 4 casos)
+│       │   ├── GeofenceServiceTest.java          (Mockito — 7 casos)
+│       │   ├── AircraftServiceTest.java           (Mockito — 4 casos)
+│       │   └── FlightDataResilienceTest.java      (Resilience4j — 4 casos)
 │       └── controller/
-│           ├── AircraftControllerTest.java  (MockMvc — 3 casos)
-│           └── ZoneControllerTest.java      (MockMvc — 4 casos)
+│           ├── AircraftControllerTest.java        (MockMvc — 3 casos)
+│           └── ZoneControllerTest.java            (MockMvc — 4 casos)
 ├── frontend/
 │   └── src/
 │       ├── views/
@@ -317,6 +319,12 @@ Cobertura incluida:
 - `POST /api/zones` crea y devuelve la zona guardada
 - `DELETE /api/zones/{id}` elimina la zona por ID
 
+**FlightDataResilienceTest** (Resilience4j):
+- Retry ejecuta exactamente 3 intentos antes de rendirse
+- Fallback retorna caché local cuando la API no responde
+- Circuit breaker en estado OPEN no realiza nuevas llamadas
+- Circuit breaker en estado HALF_OPEN permite llamada de sondeo
+
 > Los tests usan un perfil `test` con H2 en memoria — no requieren PostgreSQL.
 
 ---
@@ -326,7 +334,6 @@ Cobertura incluida:
 - Autenticación con JWT y gestión de roles.
 - Hardening de seguridad: profiles Spring Boot (dev/prod), headers HTTP de seguridad.
 - Pipeline CI/CD con DevSecOps completo (SAST, cobertura, deploy automático).
-- Resilience layer: retry logic y circuit breaker para llamadas a adsb.fi.
 - Métricas de negocio personalizadas en Grafana (alertas/hora, detecciones por severidad).
 - Logging estructurado con correlation IDs para trazabilidad distribuida.
 
