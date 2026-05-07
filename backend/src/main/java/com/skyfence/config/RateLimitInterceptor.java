@@ -71,10 +71,8 @@ public class RateLimitInterceptor extends OncePerRequestFilter {
     }
 
     private String getClientIP(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null || xfHeader.isEmpty()) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0].trim();
+        // X-Forwarded-For is not used: it can be spoofed by clients to bypass rate limiting.
+        // Use the TCP-level remote address which cannot be forged.
+        return request.getRemoteAddr();
     }
 }

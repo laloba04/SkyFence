@@ -7,8 +7,10 @@ import com.skyfence.model.Role;
 import com.skyfence.model.User;
 import com.skyfence.repository.UserRepository;
 import com.skyfence.security.JwtService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,6 +44,11 @@ public class AuthController {
         User user = (User) auth.getPrincipal();
         String token = jwtService.generateToken(user);
         return ResponseEntity.ok(new LoginResponse(token, user.getUsername(), user.getRole().name()));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<?> handleBadCredentials(BadCredentialsException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid credentials"));
     }
 
     @PostMapping("/register")

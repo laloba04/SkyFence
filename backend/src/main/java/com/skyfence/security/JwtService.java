@@ -1,6 +1,7 @@
 package com.skyfence.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,8 +39,12 @@ public class JwtService {
     }
 
     public boolean isValid(String token, UserDetails user) {
-        String username = extractUsername(token);
-        return username.equals(user.getUsername()) && !isExpired(token);
+        try {
+            String username = extractUsername(token);
+            return username.equals(user.getUsername()) && !isExpired(token);
+        } catch (ExpiredJwtException e) {
+            return false;
+        }
     }
 
     private boolean isExpired(String token) {
