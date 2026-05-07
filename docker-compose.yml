@@ -32,6 +32,8 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       JWT_SECRET: ${JWT_SECRET}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
