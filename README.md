@@ -14,6 +14,12 @@ Sistema de monitorización de aeronaves que consume datos reales de [adsb.fi](ht
 [![CodeQL](https://github.com/laloba04/SkyFence/actions/workflows/codeql.yml/badge.svg)](https://github.com/laloba04/SkyFence/actions/workflows/codeql.yml)
 [![Secret Scan](https://github.com/laloba04/SkyFence/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/laloba04/SkyFence/actions/workflows/secret-scan.yml)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=laloba04_SkyFence&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=laloba04_SkyFence&metric=bugs)](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=laloba04_SkyFence&metric=vulnerabilities)](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=laloba04_SkyFence&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=laloba04_SkyFence&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=laloba04_SkyFence&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=laloba04_SkyFence&metric=coverage)](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence)
 
 ## Demo en producción
 
@@ -331,6 +337,24 @@ Cobertura incluida:
 - Circuit breaker en estado HALF_OPEN permite llamada de sondeo
 
 > Los tests usan un perfil `test` con H2 en memoria — no requieren PostgreSQL.
+
+---
+
+## Análisis de calidad con SonarCloud
+
+El proyecto está integrado con [SonarCloud](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence) para análisis estático continuo del código. El escaneo se ejecuta automáticamente en cada push a `main` mediante GitHub Actions.
+
+| Métrica | Qué mide |
+|---------|----------|
+| **Quality Gate** | Aprueba o bloquea el código según umbrales mínimos de calidad |
+| **Bugs** | Errores lógicos detectados estáticamente que pueden causar fallos en producción |
+| **Vulnerabilities** | Fallos de seguridad explotables (inyección, exposición de datos, etc.) |
+| **Security Rating** | Nota de seguridad de A (sin vulnerabilidades) a E (crítico) |
+| **Maintainability** | Deuda técnica acumulada: código duplicado, funciones complejas, etc. |
+| **Code Smells** | Patrones de código problemáticos que dificultan el mantenimiento |
+| **Coverage** | Porcentaje de líneas de código cubiertas por los tests |
+
+El análisis cubre el módulo `backend/` (Java 17). La configuración del workflow se encuentra en `.github/workflows/sonar.yml`.
 
 ---
 

@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheck, Map, Bell, MapPin, Activity, Users, LogOut } from 'lucide-react';
+import { clearAuth, getUser } from '../auth';
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -12,7 +13,10 @@ export default function Layout() {
     { name: 'Usuarios y Control', path: '/users', icon: Users },
   ];
 
+  const user = getUser();
+
   const handleLogout = () => {
+    clearAuth();
     navigate('/login');
   };
 
@@ -59,7 +63,7 @@ export default function Layout() {
             onMouseOut={e => e.currentTarget.style.background = 'transparent'}
           >
             <LogOut size={20} />
-            Cerrar Sesión (Simulador)
+            Cerrar Sesión {user ? `(${user.username})` : ''}
           </button>
         </div>
       </aside>

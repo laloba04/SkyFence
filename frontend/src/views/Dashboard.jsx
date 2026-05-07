@@ -6,6 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import AlertPanel from '../components/AlertPanel';
 import ZoneManagerModal from '../components/ZoneManagerModal';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { authHeader } from '../auth';
 
 const SIM_AIRCRAFT = [
   { icao24: 'sim1', callsign: 'SIM-MAD', latitude: 40.48, longitude: -3.50, altitude: 3000, velocity: 150 },
@@ -99,7 +100,7 @@ export default function Dashboard() {
   const executeDeleteZone = async () => {
     if (!zoneToDelete) return;
     try {
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/zones/${zoneToDelete.id}`);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/zones/${zoneToDelete.id}`, { headers: authHeader() });
       setZones(prev => prev.filter(z => z.id !== zoneToDelete.id));
       toast.success('Zona eliminada correctamente');
       setZoneToDelete(null);
@@ -118,7 +119,9 @@ export default function Dashboard() {
     setSimulating(true);
     try {
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/simulate?zoneId=${simZoneId}`
+        `${import.meta.env.VITE_API_URL}/api/simulate?zoneId=${simZoneId}`,
+        null,
+        { headers: authHeader() }
       );
       const alert = res.data;
       const zone = zones.find(z => z.id === Number(simZoneId));

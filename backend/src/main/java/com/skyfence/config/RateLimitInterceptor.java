@@ -2,60 +2,72 @@ package com.skyfence.config;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.filter.OncePerRequestFilter;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class RateLimitInterceptor implements HandlerInterceptor {
+@Order(-200)
+public class RateLimitInterceptor extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(RateLimitInterceptor.class);
 
-    private final Map<String, Bucket> readBuckets = new ConcurrentHashMap<>();
+    private final Map<String, Bucket> readBuckets  = new ConcurrentHashMap<>();
     private final Map<String, Bucket> writeBuckets = new ConcurrentHashMap<>();
 
-    // Read limits: 60 requests per minute
     private Bucket createNewReadBucket() {
         Bandwidth limit = Bandwidth.builder().capacity(60).refillGreedy(60, Duration.ofMinutes(1)).build();
         return Bucket.builder().addLimit(limit).build();
     }
 
-    // Write limits: 10 requests per minute
     private Bucket createNewWriteBucket() {
         Bandwidth limit = Bandwidth.builder().capacity(10).refillGreedy(10, Duration.ofMinutes(1)).build();
         return Bucket.builder().addLimit(limit).build();
     }
 
     @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String ip = getClientIP(request);
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        if (path == null || path.isEmpty()) {
+            path = request.getRequestURI();
+        }
+        return !path.startsWith("/api/");
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain chain) throws ServletException, IOException {
+        String ip     = getClientIP(request);
         String method = request.getMethod();
 
-        if (method.equalsIgnoreCase("POST") || method.equalsIgnoreCase("PUT") || method.equalsIgnoreCase("DELETE")) {
-            Bucket bucket = writeBuckets.computeIfAbsent(ip, k -> createNewWriteBucket());
-            if (bucket.tryConsume(1)) {
-                return true;
-            }
+        Bucket bucket;
+        if ("POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) {
+            bucket = writeBuckets.computeIfAbsent(ip, k -> createNewWriteBucket());
         } else {
-            // Read limits for GET, OPTIONS, HEAD
-            Bucket bucket = readBuckets.computeIfAbsent(ip, k -> createNewReadBucket());
-            if (bucket.tryConsume(1)) {
-                return true;
-            }
+            bucket = readBuckets.computeIfAbsent(ip, k -> createNewReadBucket());
         }
 
-        response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
-        log.warn("SECURITY ALERT: Rate limit exceeded for IP: {} [{} {}] - Possible Intrusion Attempt", ip, method, request.getRequestURI());
-        response.getWriter().write("429 Too Many Requests");
-        return false;
+        if (bucket.tryConsume(1)) {
+            chain.doFilter(request, response);
+        } else {
+            log.warn("SECURITY ALERT: Rate limit exceeded for IP: {} [{} {}] - Possible Intrusion Attempt",
+                     ip, method, request.getRequestURI());
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+            response.getWriter().write("429 Too Many Requests");
+        }
     }
 
     private String getClientIP(HttpServletRequest request) {

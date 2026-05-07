@@ -1,10 +1,14 @@
 package com.skyfence.controller;
 
 import com.skyfence.model.Aircraft;
+import com.skyfence.security.JwtService;
+import com.skyfence.security.UserDetailsServiceImpl;
 import com.skyfence.service.AircraftService;
 import com.skyfence.service.FlightDataService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
@@ -17,7 +21,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(AircraftController.class)
+@WebMvcTest(controllers = AircraftController.class,
+            excludeAutoConfiguration = {SecurityAutoConfiguration.class, UserDetailsServiceAutoConfiguration.class})
 @ActiveProfiles("test")
 class AircraftControllerTest {
 
@@ -29,6 +34,12 @@ class AircraftControllerTest {
 
     @MockBean
     FlightDataService flightDataService;
+
+    @MockBean
+    JwtService jwtService;
+
+    @MockBean
+    UserDetailsServiceImpl userDetailsService;
 
     @Test
     void getAll_shouldReturn200() throws Exception {
