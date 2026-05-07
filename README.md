@@ -10,6 +10,10 @@ Sistema de monitorización de aeronaves que consume datos reales de [adsb.fi](ht
 ![React](https://img.shields.io/badge/React_18-20232A?style=flat&logo=react&logoColor=61DAFB)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 
+[![CI/CD Pipeline](https://github.com/laloba04/SkyFence/actions/workflows/ci.yml/badge.svg)](https://github.com/laloba04/SkyFence/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/laloba04/SkyFence/actions/workflows/codeql.yml/badge.svg)](https://github.com/laloba04/SkyFence/actions/workflows/codeql.yml)
+[![Secret Scan](https://github.com/laloba04/SkyFence/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/laloba04/SkyFence/actions/workflows/secret-scan.yml)
+
 ## Demo en producción
 
 | Servicio | URL |
