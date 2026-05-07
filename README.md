@@ -13,6 +13,7 @@ Sistema de monitorización de aeronaves que consume datos reales de [adsb.fi](ht
 [![CI/CD Pipeline](https://github.com/laloba04/SkyFence/actions/workflows/ci.yml/badge.svg)](https://github.com/laloba04/SkyFence/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/laloba04/SkyFence/actions/workflows/codeql.yml/badge.svg)](https://github.com/laloba04/SkyFence/actions/workflows/codeql.yml)
 [![Secret Scan](https://github.com/laloba04/SkyFence/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/laloba04/SkyFence/actions/workflows/secret-scan.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=laloba04_SkyFence&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=laloba04_SkyFence)
 
 ## Demo en producción
 
@@ -337,7 +338,6 @@ Cobertura incluida:
 
 - Autenticación con JWT y gestión de roles.
 - Hardening de seguridad: profiles Spring Boot (dev/prod), headers HTTP de seguridad.
-- Pipeline CI/CD con DevSecOps completo (SAST, cobertura, deploy automático).
 - Métricas de negocio personalizadas en Grafana (alertas/hora, detecciones por severidad).
 - Logging estructurado con correlation IDs para trazabilidad distribuida.
 
