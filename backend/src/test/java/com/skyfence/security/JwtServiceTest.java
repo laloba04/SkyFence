@@ -18,7 +18,7 @@ class JwtServiceTest {
     void setUp() {
         jwtService = new JwtService();
         ReflectionTestUtils.setField(jwtService, "secret",
-                "test-secret-key-that-is-long-enough-for-hmac-256-bits");
+                "test-secret-key-that-is-long-enough-for-hmac");
         ReflectionTestUtils.setField(jwtService, "expirationMs", 3600000L);
 
         user = new User("testuser", "encodedPwd", Role.OPERATOR);

@@ -64,7 +64,7 @@ class AuthControllerTest {
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("username", "admin", "password", "admin123"))))
+                        .content(objectMapper.writeValueAsString(Map.of("username", "admin", "password", "mock-input"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").value("test.jwt.token"))
                 .andExpect(jsonPath("$.username").value("admin"))
@@ -90,7 +90,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "newuser", "password", "pass123", "role", "OPERATOR"))))
+                                Map.of("username", "newuser", "password", "mock-input", "role", "OPERATOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User registered successfully"));
     }
@@ -102,7 +102,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "admin", "password", "pass123", "role", "OPERATOR"))))
+                                Map.of("username", "admin", "password", "mock-input", "role", "OPERATOR"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Username already exists"));
     }
@@ -114,7 +114,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "newuser", "password", "pass123", "role", "INVALID_ROLE"))))
+                                Map.of("username", "newuser", "password", "mock-input", "role", "INVALID_ROLE"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Invalid role"));
     }
@@ -127,7 +127,7 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "newuser", "password", "pass123"))))
+                                Map.of("username", "newuser", "password", "mock-input"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User registered successfully"));
     }
