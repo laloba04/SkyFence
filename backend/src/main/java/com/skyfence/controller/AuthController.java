@@ -50,10 +50,10 @@ public class AuthController {
         User user = (User) auth.getPrincipal();
         String token = jwtService.generateToken(user);
 
-        MDC.put("userId", user.getUsername());
-        MDC.put("ip", httpRequest.getRemoteAddr());
+        MDC.put("userId", sanitize(user.getUsername()));
+        MDC.put("ip", sanitize(httpRequest.getRemoteAddr()));
         MDC.put("event", "LOGIN_SUCCESS");
-        log.info("Login successful for user '{}'", user.getUsername());
+        log.info("Login successful for user '{}'", sanitize(user.getUsername()));
         MDC.clear();
 
         return ResponseEntity.ok(new LoginResponse(token, user.getUsername(), user.getRole().name()));
@@ -61,9 +61,10 @@ public class AuthController {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<?> handleBadCredentials(BadCredentialsException ex, HttpServletRequest httpRequest) {
-        MDC.put("ip", httpRequest.getRemoteAddr());
+        String ip = sanitize(httpRequest.getRemoteAddr());
+        MDC.put("ip", ip);
         MDC.put("event", "LOGIN_FAILED");
-        log.warn("Login failed from IP {}: bad credentials", httpRequest.getRemoteAddr());
+        log.warn("Login failed from IP {}: bad credentials", ip);
         MDC.clear();
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid credentials"));
@@ -71,10 +72,11 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req, HttpServletRequest httpRequest) {
+        String ip = sanitize(httpRequest.getRemoteAddr());
         if (userRepository.existsByUsername(req.getUsername())) {
-            MDC.put("ip", httpRequest.getRemoteAddr());
+            MDC.put("ip", ip);
             MDC.put("event", "REGISTER_DUPLICATE");
-            log.warn("Register failed: username '{}' already exists", req.getUsername());
+            log.warn("Register failed: username '{}' already exists", sanitize(req.getUsername()));
             MDC.clear();
             return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
         }
@@ -82,21 +84,25 @@ public class AuthController {
         try {
             role = req.getRole() != null ? Role.valueOf(req.getRole().toUpperCase()) : Role.OPERATOR;
         } catch (IllegalArgumentException e) {
-            MDC.put("ip", httpRequest.getRemoteAddr());
+            MDC.put("ip", ip);
             MDC.put("event", "REGISTER_INVALID_ROLE");
-            log.warn("Register failed: invalid role '{}' for username '{}'", req.getRole(), req.getUsername());
+            log.warn("Register failed: invalid role '{}' for username '{}'", sanitize(req.getRole()), sanitize(req.getUsername()));
             MDC.clear();
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid role"));
         }
         User user = new User(req.getUsername(), passwordEncoder.encode(req.getPassword()), role);
         userRepository.save(user);
 
-        MDC.put("userId", req.getUsername());
-        MDC.put("ip", httpRequest.getRemoteAddr());
+        MDC.put("userId", sanitize(req.getUsername()));
+        MDC.put("ip", ip);
         MDC.put("event", "REGISTER_SUCCESS");
-        log.info("User '{}' registered with role {}", req.getUsername(), role);
+        log.info("User '{}' registered with role {}", sanitize(req.getUsername()), role);
         MDC.clear();
 
         return ResponseEntity.ok(Map.of("message", "User registered successfully"));
+    }
+
+    private static String sanitize(String value) {
+        return value == null ? "" : value.replaceAll("[\r\n\t]", "_");
     }
 }

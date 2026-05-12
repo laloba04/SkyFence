@@ -42,10 +42,10 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        String ip = request.getRemoteAddr();
+        String ip = sanitize(request.getRemoteAddr());
         try {
-            String username = jwtService.extractUsername(token);
-            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            String username = sanitize(jwtService.extractUsername(token));
+            if (!username.isEmpty() && SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails user = userDetailsService.loadUserByUsername(username);
                 if (jwtService.isValid(token, user)) {
                     UsernamePasswordAuthenticationToken auth =
@@ -66,11 +66,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             MDC.put("ip", ip);
             MDC.put("event", "JWT_ERROR");
-            log.warn("JWT processing error from IP {}: {}", ip, e.getMessage());
+            log.warn("JWT processing error from IP {}: {}", ip, sanitize(e.getMessage()));
         } finally {
             MDC.clear();
         }
 
         chain.doFilter(request, response);
+    }
+
+    private static String sanitize(String value) {
+        return value == null ? "" : value.replaceAll("[\r\n\t]", "_");
     }
 }
