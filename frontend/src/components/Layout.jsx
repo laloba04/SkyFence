@@ -5,15 +5,16 @@ import { clearAuth, getUser } from '../auth';
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const user = getUser();
+  const isAdmin = user?.role === 'ADMIN';
+
   const navItems = [
     { name: 'Dashboard Real-Time', path: '/dashboard', icon: Map },
     { name: 'Histórico Alertas', path: '/alerts', icon: Bell },
     { name: 'Zonas Restringidas', path: '/zones', icon: MapPin },
     { name: 'Salud del Sistema', path: '/system', icon: Activity },
-    { name: 'Usuarios y Control', path: '/users', icon: Users },
+    ...(isAdmin ? [{ name: 'Usuarios y Control', path: '/users', icon: Users }] : []),
   ];
-
-  const user = getUser();
 
   const handleLogout = () => {
     clearAuth();

@@ -8,6 +8,12 @@ import System from './views/System';
 import UsersView from './views/Users';
 import Login from './views/Login';
 import Register from './views/Register';
+import { getUser } from './auth';
+
+function AdminRoute({ children }) {
+  const user = getUser();
+  return user?.role === 'ADMIN' ? children : <Navigate to="/dashboard" replace />;
+}
 
 export default function App() {
   return (
@@ -21,7 +27,7 @@ export default function App() {
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/zones" element={<Zones />} />
           <Route path="/system" element={<System />} />
-          <Route path="/users" element={<UsersView />} />
+          <Route path="/users" element={<AdminRoute><UsersView /></AdminRoute>} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
