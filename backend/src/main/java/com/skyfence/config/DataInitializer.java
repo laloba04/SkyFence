@@ -22,7 +22,7 @@ public class DataInitializer implements ApplicationRunner {
     @Value("${admin.username:admin}")
     private String adminUsername;
 
-    @Value("${admin.password:#{null}}")
+    @Value("${admin.password:}")
     private String adminPassword;
 
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -35,7 +35,7 @@ public class DataInitializer implements ApplicationRunner {
         if (userRepository.existsByUsername(adminUsername)) {
             return;
         }
-        if (adminPassword == null) {
+        if (adminPassword == null || adminPassword.isEmpty()) {
             log.warn("No admin user found and ADMIN_PASSWORD is not set — skipping admin bootstrap. Set ADMIN_PASSWORD to create the initial admin.");
             return;
         }
