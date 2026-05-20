@@ -7,7 +7,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: '', password: '', confirm: '', role: 'OPERATOR' });
+  const [form, setForm] = useState({ username: '', password: '', confirm: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +25,7 @@ export default function Register() {
       await axios.post(`${API}/api/auth/register`, {
         username: form.username,
         password: form.password,
-        role: form.role,
+        role: 'OPERATOR',
       });
       navigate('/login', { state: { registered: true } });
     } catch (err) {
@@ -62,15 +62,7 @@ export default function Register() {
             <input name="confirm" type="password" value={form.confirm} onChange={handleChange} placeholder="••••••••" required style={inputStyle} />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Rol</label>
-            <select name="role" value={form.role} onChange={handleChange} style={{ ...inputStyle, background: 'white', cursor: 'pointer' }}>
-              <option value="OPERATOR">Operador</option>
-              <option value="ADMIN">Administrador</option>
-            </select>
-          </div>
-
-          {error && <p style={{ margin: 0, color: '#ef4444', fontSize: '14px', textAlign: 'center' }}>{error}</p>}
+          {error &&<p style={{ margin: 0, color: '#ef4444', fontSize: '14px', textAlign: 'center' }}>{error}</p>}
 
           <button
             type="submit"

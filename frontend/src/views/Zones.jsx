@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { MapPin, Plus, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
-import { authHeader } from '../auth';
+import { authHeader, getUser } from '../auth';
 import ZoneManagerModal from '../components/ZoneManagerModal';
 
 const API = import.meta.env.VITE_API_URL;
@@ -18,6 +18,7 @@ export default function Zones() {
   const [error, setError]     = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const isAdmin = getUser()?.role === 'ADMIN';
 
   const fetchZones = () => {
     setLoading(true);
@@ -65,11 +66,13 @@ export default function Zones() {
             <RefreshCw size={15} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             Actualizar
           </button>
-          <button onClick={() => setModalOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px',
-                     background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '14px' }}>
-            <Plus size={15} /> Añadir Zona
-          </button>
+          {isAdmin && (
+            <button onClick={() => setModalOpen(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px',
+                       background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '14px' }}>
+              <Plus size={15} /> Añadir Zona
+            </button>
+          )}
         </div>
       </header>
 
@@ -95,12 +98,14 @@ export default function Zones() {
                       border: '1px dashed #d1d5db', textAlign: 'center', color: '#6b7280' }}>
           <MapPin size={44} color="#d1d5db" style={{ marginBottom: '14px' }} />
           <h2 style={{ margin: '0 0 8px', color: '#374151' }}>Sin zonas registradas</h2>
-          <p style={{ margin: '0 0 20px' }}>Añade la primera zona restringida del sistema.</p>
-          <button onClick={() => setModalOpen(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px',
-                     background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
-            <Plus size={15} /> Añadir Zona
-          </button>
+          <p style={{ margin: '0 0 20px' }}>{isAdmin ? 'Añade la primera zona restringida del sistema.' : 'No hay zonas configuradas aún.'}</p>
+          {isAdmin && (
+            <button onClick={() => setModalOpen(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '8px',
+                       background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
+              <Plus size={15} /> Añadir Zona
+            </button>
+          )}
         </div>
       ) : (
         <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
@@ -112,7 +117,7 @@ export default function Zones() {
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Tipo</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Coordenadas</th>
                 <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Radio</th>
-                <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Acciones</th>
+                {isAdmin && <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>Acciones</th>}
               </tr>
             </thead>
             <tbody>
@@ -132,20 +137,22 @@ export default function Zones() {
                       {z.latitude?.toFixed(4)}, {z.longitude?.toFixed(4)}
                     </td>
                     <td style={{ padding: '12px 16px', color: '#4b5563' }}>{z.radiusKm} km</td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <button
-                        onClick={() => handleDelete(z)}
-                        disabled={deleting === z.id}
-                        title="Eliminar zona"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
-                                 padding: '6px 12px', borderRadius: 8, fontSize: 13,
-                                 border: '1px solid #fca5a5', background: '#fef2f2',
-                                 color: '#dc2626', cursor: 'pointer', fontWeight: 500,
-                                 opacity: deleting === z.id ? 0.6 : 1 }}>
-                        <Trash2 size={13} />
-                        {deleting === z.id ? 'Eliminando…' : 'Eliminar'}
-                      </button>
-                    </td>
+                    {isAdmin && (
+                      <td style={{ padding: '12px 16px' }}>
+                        <button
+                          onClick={() => handleDelete(z)}
+                          disabled={deleting === z.id}
+                          title="Eliminar zona"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
+                                   padding: '6px 12px', borderRadius: 8, fontSize: 13,
+                                   border: '1px solid #fca5a5', background: '#fef2f2',
+                                   color: '#dc2626', cursor: 'pointer', fontWeight: 500,
+                                   opacity: deleting === z.id ? 0.6 : 1 }}>
+                          <Trash2 size={13} />
+                          {deleting === z.id ? 'Eliminando…' : 'Eliminar'}
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}

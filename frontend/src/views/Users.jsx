@@ -11,11 +11,13 @@ const ROLE_STYLES = {
 };
 
 export default function UsersView() {
-  const [users, setUsers]     = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [users, setUsers]       = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [togglingRole, setTogglingRole] = useState(null);
   const currentUser = getUser();
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const fetchUsers = () => {
     setLoading(true);
@@ -27,6 +29,21 @@ export default function UsersView() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  const handleToggleRole = async (user) => {
+    const newRole = user.role === 'ADMIN' ? 'OPERATOR' : 'ADMIN';
+    const label = newRole === 'ADMIN' ? 'administrador' : 'operador';
+    if (!window.confirm(`¿Cambiar el rol de "${user.username}" a ${label}?`)) return;
+    setTogglingRole(user.id);
+    try {
+      await axios.patch(`${API}/api/users/${user.id}/role`, { role: newRole }, { headers: authHeader() });
+      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, role: newRole } : u));
+    } catch {
+      setError('Error al cambiar el rol del usuario.');
+    } finally {
+      setTogglingRole(null);
+    }
+  };
 
   const handleDelete = async (user) => {
     if (!window.confirm(`¿Eliminar al usuario "${user.username}"? Esta acción no se puede deshacer.`)) return;
@@ -113,7 +130,21 @@ export default function UsersView() {
                         {style.icon} {style.label}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px' }}>
+                    <td style={{ padding: '12px 16px' }}><div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {isAdmin && !isSelf && (
+                        <button
+                          onClick={() => handleToggleRole(u)}
+                          disabled={togglingRole === u.id}
+                          title={u.role === 'ADMIN' ? 'Degradar a Operator' : 'Promover a Admin'}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 5,
+                                   padding: '6px 12px', borderRadius: 8, fontSize: 13,
+                                   border: '1px solid #c4b5fd', background: '#ede9fe',
+                                   color: '#6d28d9', cursor: 'pointer', fontWeight: 500,
+                                   opacity: togglingRole === u.id ? 0.6 : 1 }}>
+                          {u.role === 'ADMIN' ? <UserCog size={13} /> : <ShieldCheck size={13} />}
+                          {togglingRole === u.id ? '…' : u.role === 'ADMIN' ? 'Hacer Operator' : 'Hacer Admin'}
+                        </button>
+                      )}
                       {!isSelf && (
                         <button
                           onClick={() => handleDelete(u)}
@@ -128,7 +159,7 @@ export default function UsersView() {
                           {deleting === u.id ? 'Eliminando…' : 'Eliminar'}
                         </button>
                       )}
-                    </td>
+                    </div></td>
                   </tr>
                 );
               })}

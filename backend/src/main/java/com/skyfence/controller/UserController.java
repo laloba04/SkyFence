@@ -1,6 +1,8 @@
 package com.skyfence.controller;
 
 import com.skyfence.dto.UserResponse;
+import com.skyfence.model.Role;
+import com.skyfence.model.User;
 import com.skyfence.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,6 +27,23 @@ public class UserController {
         return userRepository.findAll().stream()
                 .map(UserResponse::from)
                 .toList();
+    }
+
+    @PatchMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        return userRepository.findById(id).map(user -> {
+            String roleStr = body.get("role");
+            Role newRole;
+            try {
+                newRole = Role.valueOf(roleStr.toUpperCase());
+            } catch (IllegalArgumentException | NullPointerException e) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid role"));
+            }
+            user.setRole(newRole);
+            userRepository.save(user);
+            return ResponseEntity.ok(UserResponse.from(user));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")

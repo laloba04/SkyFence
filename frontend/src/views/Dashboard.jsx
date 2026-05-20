@@ -6,7 +6,7 @@ import ConfirmModal from '../components/ConfirmModal';
 import AlertPanel from '../components/AlertPanel';
 import ZoneManagerModal from '../components/ZoneManagerModal';
 import { useWebSocket } from '../hooks/useWebSocket';
-import { authHeader } from '../auth';
+import { authHeader, getUser } from '../auth';
 
 const SIM_AIRCRAFT = [
   { icao24: 'sim1', callsign: 'SIM-MAD', latitude: 40.48, longitude: -3.50, altitude: 3000, velocity: 150 },
@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [simulating, setSimulating] = useState(false);
 
   const { alerts: rawAlerts, connected } = useWebSocket();
+  const isAdmin = getUser()?.role === 'ADMIN';
 
   const allAlerts = [...mockAlerts, ...rawAlerts];
   const alerts = clearedAt ? allAlerts.filter(a => new Date(a.detectedAt || Date.now()) > clearedAt) : allAlerts;
@@ -191,15 +192,19 @@ export default function Dashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                <h2 style={{ margin: 0, fontSize: '18px', color: '#374151' }}>Mapa en tiempo real</h2>
                <div style={{ display: 'flex', gap: '10px' }}>
-                  <select value={simZoneId} onChange={e => setSimZoneId(e.target.value)}
-                    style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', background: 'white', cursor: 'pointer', maxWidth: '180px' }}>
-                    <option value="">Zona a simular…</option>
-                    {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
-                  </select>
-                  <button onClick={handleSimulateIntrusion} disabled={simulating || !simZoneId}
-                    style={{...btnStyle, background: simZoneId ? '#3b82f6' : '#9ca3af', color: 'white', opacity: simulating ? 0.7 : 1}}>
-                    {simulating ? 'Simulando…' : 'Simular intrusión'}
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <select value={simZoneId} onChange={e => setSimZoneId(e.target.value)}
+                        style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '13px', background: 'white', cursor: 'pointer', maxWidth: '180px' }}>
+                        <option value="">Zona a simular…</option>
+                        {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+                      </select>
+                      <button onClick={handleSimulateIntrusion} disabled={simulating || !simZoneId}
+                        style={{...btnStyle, background: simZoneId ? '#3b82f6' : '#9ca3af', color: 'white', opacity: simulating ? 0.7 : 1}}>
+                        {simulating ? 'Simulando…' : 'Simular intrusión'}
+                      </button>
+                    </>
+                  )}
                   <button onClick={handleClearAlerts} style={{...btnStyle, background: '#e5e7eb', color: '#374151'}}>Limpiar alertas</button>
                </div>
             </div>
@@ -225,7 +230,9 @@ export default function Dashboard() {
                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                  <h3 style={{ margin: 0, fontSize: '16px', color: '#374151', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     Zonas vigiladas
-                    <button onClick={() => setIsZoneModalOpen(true)} style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}>+ Añadir</button>
+                    {isAdmin && (
+                      <button onClick={() => setIsZoneModalOpen(true)} style={{ background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }}>+ Añadir</button>
+                    )}
                  </h3>
                  <select value={zoneFilter} onChange={e => setZoneFilter(e.target.value)} style={{ fontSize: '12px', background: '#f3f4f6', padding: '2px 8px', borderRadius: '12px', color: '#4b5563', border: 'none', cursor: 'pointer', outline: 'none' }}>
                    {zoneTypes.map(t => <option key={t} value={t}>{t === 'ALL' ? 'Todas las zonas' : t}</option>)}
@@ -248,7 +255,9 @@ export default function Dashboard() {
                           <li key={z.id} style={{ display: 'flex', alignItems: 'center', fontSize: '14px', borderBottom: '1px solid #f3f4f6', paddingBottom: '10px', color: '#4b5563' }}>
                             <span style={{ flex: 1, textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>📍 <strong>{z.name}</strong></span>
                             <span style={{ fontSize: '11px', background: badge.bg, color: badge.color, padding: '2px 6px', borderRadius: '4px', marginRight: '6px' }}>{z.type}</span>
-                            <button onClick={() => setZoneToDelete(z)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '14px', padding: '0 4px', transition: 'transform 0.1s' }} title="Eliminar zona" onMouseOver={(e) => e.target.style.transform='scale(1.2)'} onMouseOut={(e) => e.target.style.transform='scale(1)'}>🗑️</button>
+                            {isAdmin && (
+                              <button onClick={() => setZoneToDelete(z)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '14px', padding: '0 4px', transition: 'transform 0.1s' }} title="Eliminar zona" onMouseOver={(e) => e.target.style.transform='scale(1.2)'} onMouseOut={(e) => e.target.style.transform='scale(1)'}>🗑️</button>
+                            )}
                           </li>
                         );
                       })
