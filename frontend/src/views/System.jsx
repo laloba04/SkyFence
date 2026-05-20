@@ -30,22 +30,31 @@ export default function System() {
     return () => clearInterval(interval);
   }, []);
 
-  const ComponentCard = ({ name, icon: Icon, statusDetails, isUp }) => (
-    <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', borderTop: `4px solid ${isUp ? '#10b981' : '#ef4444'}` }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-        <div style={{ background: isUp ? '#d1fae5' : '#fee2e2', padding: '12px', borderRadius: '50%' }}>
-          <Icon size={24} color={isUp ? '#10b981' : '#ef4444'} />
+  const getState = (status) => {
+    if (status === 'UP')      return { color: '#10b981', bg: '#d1fae5', label: 'OPERATIVO' };
+    if (status === 'UNKNOWN') return { color: '#f59e0b', bg: '#fef3c7', label: 'DEGRADADO' };
+    return                           { color: '#ef4444', bg: '#fee2e2', label: 'FALLO / NO DISPONIBLE' };
+  };
+
+  const ComponentCard = ({ name, icon: Icon, statusDetails, status }) => {
+    const state = getState(status);
+    return (
+      <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', borderTop: `4px solid ${state.color}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ background: state.bg, padding: '12px', borderRadius: '50%' }}>
+            <Icon size={24} color={state.color} />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>{name}</h3>
+            <span style={{ fontSize: '14px', color: state.color, fontWeight: 'bold' }}>{state.label}</span>
+          </div>
         </div>
-        <div>
-          <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>{name}</h3>
-          <span style={{ fontSize: '14px', color: isUp ? '#10b981' : '#ef4444', fontWeight: 'bold' }}>{isUp ? 'OPERATIVO' : 'FALLO / NO DISPONIBLE'}</span>
-        </div>
+        <pre style={{ background: '#111827', color: '#a7f3d0', padding: '16px', borderRadius: '8px', fontSize: '13px', overflowX: 'auto', margin: 0 }}>
+          {JSON.stringify(statusDetails, null, 2)}
+        </pre>
       </div>
-      <pre style={{ background: '#111827', color: '#a7f3d0', padding: '16px', borderRadius: '8px', fontSize: '13px', overflowX: 'auto', margin: 0 }}>
-        {JSON.stringify(statusDetails, null, 2)}
-      </pre>
-    </div>
-  );
+    );
+  };
 
   return (
     <div style={{ padding: '32px' }}>
@@ -63,10 +72,10 @@ export default function System() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '24px' }}>
-          <ComponentCard name="Backend Principal (SkyFence API)" icon={Activity} isUp={health.status === 'UP'} statusDetails={{ status: health.status }} />
-          <ComponentCard name="Base de Datos (PostgreSQL)" icon={Database} isUp={health.components?.db?.status === 'UP'} statusDetails={health.components?.db?.details || {}} />
-          <ComponentCard name="adsb.fi API" icon={Cloud} isUp={health.components?.adsbfi?.status === 'UP'} statusDetails={health.components?.adsbfi?.details || {}} />
-          <ComponentCard name="Broker STOMP (WebSockets)" icon={Radio} isUp={health.components?.websocket?.status === 'UP'} statusDetails={health.components?.websocket?.details || {}} />
+          <ComponentCard name="Backend Principal (SkyFence API)" icon={Activity} status={health.status} statusDetails={{ status: health.status }} />
+          <ComponentCard name="Base de Datos (PostgreSQL)" icon={Database} status={health.components?.db?.status} statusDetails={health.components?.db?.details || {}} />
+          <ComponentCard name="adsb.fi API" icon={Cloud} status={health.components?.adsbfi?.status} statusDetails={health.components?.adsbfi?.details || {}} />
+          <ComponentCard name="Broker STOMP (WebSockets)" icon={Radio} status={health.components?.websocket?.status} statusDetails={health.components?.websocket?.details || {}} />
         </div>
       )}
     </div>
