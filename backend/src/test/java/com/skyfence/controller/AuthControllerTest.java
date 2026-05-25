@@ -85,12 +85,13 @@ class AuthControllerTest {
     @Test
     void register_newUser_returns200() throws Exception {
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
         when(passwordEncoder.encode(any())).thenReturn("encodedPwd");
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "newuser", "password", "mock-input", "role", "OPERATOR"))))
+                                Map.of("username", "newuser", "email", "new@example.com", "password", "mock-input", "role", "OPERATOR"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User registered successfully"));
     }
@@ -98,11 +99,12 @@ class AuthControllerTest {
     @Test
     void register_duplicateUsername_returns400() throws Exception {
         when(userRepository.existsByUsername("admin")).thenReturn(true);
+        when(userRepository.existsByEmail("admin@example.com")).thenReturn(false);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "admin", "password", "mock-input", "role", "OPERATOR"))))
+                                Map.of("username", "admin", "email", "admin@example.com", "password", "mock-input", "role", "OPERATOR"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Username already exists"));
     }
@@ -110,11 +112,12 @@ class AuthControllerTest {
     @Test
     void register_invalidRole_returns400() throws Exception {
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "newuser", "password", "mock-input", "role", "INVALID_ROLE"))))
+                                Map.of("username", "newuser", "email", "new@example.com", "password", "mock-input", "role", "INVALID_ROLE"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Invalid role"));
     }
@@ -122,12 +125,13 @@ class AuthControllerTest {
     @Test
     void register_nullRole_defaultsToOperator() throws Exception {
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
         when(passwordEncoder.encode(any())).thenReturn("encodedPwd");
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
-                                Map.of("username", "newuser", "password", "mock-input"))))
+                                Map.of("username", "newuser", "email", "new@example.com", "password", "mock-input"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("User registered successfully"));
     }
