@@ -7,7 +7,7 @@ const API = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 export default function Register() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ username: '', password: '', confirm: '' });
+  const [form, setForm] = useState({ username: '', email: '', password: '', confirm: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -24,6 +24,7 @@ export default function Register() {
     try {
       await axios.post(`${API}/api/auth/register`, {
         username: form.username,
+        email: form.email,
         password: form.password,
         role: 'OPERATOR',
       });
@@ -50,6 +51,11 @@ export default function Register() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             <label style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Usuario</label>
             <input name="username" value={form.username} onChange={handleChange} placeholder="nombre_usuario" required style={inputStyle} />
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <label style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Correo electrónico</label>
+            <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="correo@ejemplo.com" required style={inputStyle} />
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

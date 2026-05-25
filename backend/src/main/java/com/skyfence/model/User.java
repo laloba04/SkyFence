@@ -26,12 +26,22 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role;
 
+    @Column(unique = true)
+    private String email;
+
     public User() {}
 
     public User(String username, String password, Role role) {
         this.username = username;
         this.password = password;
         this.role = role;
+    }
+
+    public User(String username, String password, Role role, String email) {
+        this.username = username;
+        this.password = password;
+        this.role = role;
+        this.email = email;
     }
 
     @Override
@@ -46,10 +56,12 @@ public class User implements UserDetails {
     @Override public boolean isCredentialsNonExpired(){ return true; }
     @Override public boolean isEnabled()              { return true; }
 
-    public Long getId()    { return id; }
-    public Role getRole()  { return role; }
+    public Long getId()     { return id; }
+    public Role getRole()   { return role; }
+    public String getEmail(){ return email; }
     public void setId(Long id)          { this.id = id; }
     public void setUsername(String u)   { this.username = u; }
     public void setPassword(String p)   { this.password = p; }
     public void setRole(Role r)         { this.role = r; }
+    public void setEmail(String e)      { this.email = e; }
 }

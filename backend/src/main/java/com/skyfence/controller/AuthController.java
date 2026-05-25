@@ -73,12 +73,18 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest req, HttpServletRequest httpRequest) {
         String ip = sanitize(httpRequest.getRemoteAddr());
+        if (req.getEmail() == null || req.getEmail().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email is required"));
+        }
         if (userRepository.existsByUsername(req.getUsername())) {
             MDC.put("ip", ip);
             MDC.put("event", "REGISTER_DUPLICATE");
             log.warn("Register failed: username '{}' already exists", sanitize(req.getUsername()));
             MDC.clear();
             return ResponseEntity.badRequest().body(Map.of("error", "Username already exists"));
+        }
+        if (userRepository.existsByEmail(req.getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email already in use"));
         }
         Role role;
         try {
@@ -90,7 +96,7 @@ public class AuthController {
             MDC.clear();
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid role"));
         }
-        User user = new User(req.getUsername(), passwordEncoder.encode(req.getPassword()), role);
+        User user = new User(req.getUsername(), passwordEncoder.encode(req.getPassword()), role, req.getEmail());
         userRepository.save(user);
 
         MDC.put("userId", sanitize(req.getUsername()));
