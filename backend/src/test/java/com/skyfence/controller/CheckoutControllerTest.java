@@ -1,0 +1,69 @@
+package com.skyfence.controller;
+
+import com.skyfence.model.Role;
+import com.skyfence.model.SubscriptionStatus;
+import com.skyfence.model.User;
+import com.skyfence.service.StripeService;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.ResponseEntity;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class CheckoutControllerTest {
+
+    @Mock
+    StripeService stripeService;
+
+    @InjectMocks
+    CheckoutController controller;
+
+    private User testUser() {
+        User user = new User("testuser", "pwd", Role.OPERATOR);
+        user.setSubscriptionStatus(SubscriptionStatus.FREE);
+        return user;
+    }
+
+    @Test
+    void createCheckout_nullUser_returns401() {
+        ResponseEntity<?> result = controller.createCheckout(null);
+        assertEquals(401, result.getStatusCode().value());
+    }
+
+    @Test
+    void createCheckout_withUser_returnsUrl() throws Exception {
+        when(stripeService.createCheckoutSession(any())).thenReturn("https://checkout.stripe.com/test");
+
+        ResponseEntity<?> result = controller.createCheckout(testUser());
+
+        assertEquals(200, result.getStatusCode().value());
+    }
+
+    @Test
+    void createCheckout_stripeError_returns500() throws Exception {
+        when(stripeService.createCheckoutSession(any())).thenThrow(new RuntimeException("error"));
+
+        ResponseEntity<?> result = controller.createCheckout(testUser());
+
+        assertEquals(500, result.getStatusCode().value());
+    }
+
+    @Test
+    void getSubscription_nullUser_returns401() {
+        ResponseEntity<?> result = controller.getSubscription(null);
+        assertEquals(401, result.getStatusCode().value());
+    }
+
+    @Test
+    void getSubscription_withUser_returnsStatus() {
+        ResponseEntity<?> result = controller.getSubscription(testUser());
+
+        assertEquals(200, result.getStatusCode().value());
+    }
+}
