@@ -8,6 +8,8 @@ import System from './views/System';
 import UsersView from './views/Users';
 import Login from './views/Login';
 import Register from './views/Register';
+import SubscriptionSuccess from './views/SubscriptionSuccess';
+import SubscriptionCancel from './views/SubscriptionCancel';
 import { getUser } from './auth';
 
 function AdminRoute({ children }) {
@@ -21,6 +23,8 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/subscription/success" element={<SubscriptionSuccess />} />
+        <Route path="/subscription/cancel" element={<SubscriptionCancel />} />
 
         <Route element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
