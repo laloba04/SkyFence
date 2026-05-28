@@ -29,6 +29,12 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String email;
 
+    private String stripeCustomerId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private SubscriptionStatus subscriptionStatus = SubscriptionStatus.FREE;
+
     public User() {}
 
     public User(String username, String password, Role role) {
@@ -63,5 +69,9 @@ public class User implements UserDetails {
     public void setUsername(String u)   { this.username = u; }
     public void setPassword(String p)   { this.password = p; }
     public void setRole(Role r)         { this.role = r; }
-    public void setEmail(String e)      { this.email = e; }
+    public void setEmail(String e)                          { this.email = e; }
+    public String getStripeCustomerId()                     { return stripeCustomerId; }
+    public void setStripeCustomerId(String id)              { this.stripeCustomerId = id; }
+    public SubscriptionStatus getSubscriptionStatus()       { return subscriptionStatus; }
+    public void setSubscriptionStatus(SubscriptionStatus s) { this.subscriptionStatus = s; }
 }

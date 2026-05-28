@@ -1,17 +1,24 @@
 package com.skyfence.controller;
 
 import com.skyfence.model.RestrictedZone;
+import com.skyfence.model.SubscriptionStatus;
+import com.skyfence.model.User;
 import com.skyfence.repository.RestrictedZoneRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/zones")
 @Tag(name = "Zones", description = "Zonas restringidas del espacio aéreo")
 public class ZoneController {
+
+    static final int FREE_ZONE_LIMIT = 3;
 
     private final RestrictedZoneRepository zoneRepository;
 
@@ -27,8 +34,17 @@ public class ZoneController {
 
     @PostMapping
     @Operation(summary = "Añade una nueva zona restringida")
-    public RestrictedZone create(@RequestBody RestrictedZone zone) {
-        return zoneRepository.save(zone);
+    public ResponseEntity<?> create(@RequestBody RestrictedZone zone,
+                                    @AuthenticationPrincipal User user) {
+        if (user != null
+                && user.getSubscriptionStatus() == SubscriptionStatus.FREE
+                && zoneRepository.count() >= FREE_ZONE_LIMIT) {
+            return ResponseEntity.status(403).body(Map.of(
+                    "error", "Free plan limit reached",
+                    "message", "Upgrade to Pro to create more than " + FREE_ZONE_LIMIT + " zones"
+            ));
+        }
+        return ResponseEntity.ok(zoneRepository.save(zone));
     }
 
     @DeleteMapping("/{id}")

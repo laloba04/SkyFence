@@ -62,6 +62,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // auth endpoints — public
                 .requestMatchers("/api/auth/**").permitAll()
+                // Stripe webhook — public (signature verified inside handler)
+                .requestMatchers("/api/stripe/webhook").permitAll()
                 // docs y actuator — public
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/**").permitAll()

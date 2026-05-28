@@ -1,6 +1,9 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { ShieldCheck, Map, Bell, MapPin, Activity, Users, LogOut } from 'lucide-react';
-import { clearAuth, getUser } from '../auth';
+import { ShieldCheck, Map, Bell, MapPin, Activity, Users, LogOut, Zap } from 'lucide-react';
+import axios from 'axios';
+import { clearAuth, getUser, authHeader } from '../auth';
+
+const API = import.meta.env.VITE_API_URL;
 
 export default function Layout() {
   const navigate = useNavigate();
@@ -16,9 +19,20 @@ export default function Layout() {
     ...(isAdmin ? [{ name: 'Usuarios y Control', path: '/users', icon: Users }] : []),
   ];
 
+  const isPro = user?.subscriptionStatus === 'PRO';
+
   const handleLogout = () => {
     clearAuth();
     navigate('/login');
+  };
+
+  const handleUpgrade = async () => {
+    try {
+      const res = await axios.post(`${API}/api/checkout`, {}, { headers: authHeader() });
+      window.location.href = res.data.url;
+    } catch {
+      alert('No se pudo iniciar el proceso de pago. Inténtalo de nuevo.');
+    }
   };
 
   return (
@@ -56,15 +70,42 @@ export default function Layout() {
         </nav>
 
         {/* Footer/Logout */}
-        <div style={{ padding: '24px 16px', borderTop: '1px solid #1f2937' }}>
-          <button 
+        <div style={{ padding: '16px', borderTop: '1px solid #1f2937' }}>
+          {/* Plan badge */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '10px 12px', marginBottom: '8px', borderRadius: '8px',
+                        background: isPro ? 'rgba(59,130,246,0.12)' : 'rgba(107,114,128,0.12)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em',
+                             padding: '2px 8px', borderRadius: 9999,
+                             background: isPro ? '#3b82f6' : '#4b5563',
+                             color: 'white' }}>
+                {isPro ? 'PRO' : 'FREE'}
+              </span>
+              <span style={{ fontSize: '12px', color: '#9ca3af' }}>
+                {user?.username}
+              </span>
+            </div>
+          </div>
+
+          {!isPro && (
+            <button onClick={handleUpgrade}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                       gap: '8px', padding: '10px 16px', marginBottom: '8px', borderRadius: '8px',
+                       background: 'linear-gradient(135deg, #f59e0b, #ef4444)', color: 'white',
+                       border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
+              <Zap size={15} /> Actualizar a Pro
+            </button>
+          )}
+
+          <button
             onClick={handleLogout}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'transparent', border: 'none', color: '#ef4444', fontSize: '14px', fontWeight: '500', cursor: 'pointer', borderRadius: '8px', transition: 'background 0.2s' }}
             onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
             onMouseOut={e => e.currentTarget.style.background = 'transparent'}
           >
             <LogOut size={20} />
-            Cerrar Sesión {user ? `(${user.username})` : ''}
+            Cerrar Sesión
           </button>
         </div>
       </aside>

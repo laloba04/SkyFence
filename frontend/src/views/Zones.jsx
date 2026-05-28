@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MapPin, Plus, Trash2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { MapPin, Plus, Trash2, AlertTriangle, RefreshCw, Zap } from 'lucide-react';
 import { authHeader, getUser } from '../auth';
 import ZoneManagerModal from '../components/ZoneManagerModal';
 
 const API = import.meta.env.VITE_API_URL;
+const FREE_ZONE_LIMIT = 3;
 
 const TYPE_STYLES = {
   AIRPORT:  { bg: '#eff6ff', color: '#1d4ed8', label: 'Aeropuerto' },
@@ -18,7 +19,19 @@ export default function Zones() {
   const [error, setError]     = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const isAdmin = getUser()?.role === 'ADMIN';
+  const currentUser = getUser();
+  const isAdmin = currentUser?.role === 'ADMIN';
+  const isPro = currentUser?.subscriptionStatus === 'PRO';
+  const atLimit = !isPro && zones.length >= FREE_ZONE_LIMIT;
+
+  const handleUpgrade = async () => {
+    try {
+      const res = await axios.post(`${API}/api/checkout`, {}, { headers: authHeader() });
+      window.location.href = res.data.url;
+    } catch {
+      alert('No se pudo iniciar el proceso de pago. Inténtalo de nuevo.');
+    }
+  };
 
   const fetchZones = () => {
     setLoading(true);
@@ -67,14 +80,34 @@ export default function Zones() {
             Actualizar
           </button>
           {isAdmin && (
-            <button onClick={() => setModalOpen(true)}
+            <button onClick={() => !atLimit && setModalOpen(true)} disabled={atLimit}
+              title={atLimit ? `Límite del plan gratuito: ${FREE_ZONE_LIMIT} zonas` : undefined}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px',
-                       background: '#3b82f6', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 500, fontSize: '14px' }}>
+                       background: atLimit ? '#9ca3af' : '#3b82f6', color: 'white', border: 'none',
+                       cursor: atLimit ? 'not-allowed' : 'pointer', fontWeight: 500, fontSize: '14px' }}>
               <Plus size={15} /> Añadir Zona
             </button>
           )}
         </div>
       </header>
+
+      {isAdmin && atLimit && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px',
+                      padding: '14px 18px', background: '#fffbeb', border: '1px solid #fbbf24',
+                      borderRadius: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#92400e' }}>
+            <AlertTriangle size={18} color="#f59e0b" />
+            <span style={{ fontWeight: 500 }}>
+              Has alcanzado el límite de {FREE_ZONE_LIMIT} zonas del plan gratuito.
+            </span>
+          </div>
+          <button onClick={handleUpgrade}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '8px',
+                     background: '#f59e0b', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap' }}>
+            <Zap size={14} /> Actualizar a Pro
+          </button>
+        </div>
+      )}
 
       {error && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '14px 16px',
