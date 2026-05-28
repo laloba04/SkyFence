@@ -4,10 +4,14 @@ import com.skyfence.model.Role;
 import com.skyfence.model.SubscriptionStatus;
 import com.skyfence.model.User;
 import com.skyfence.repository.UserRepository;
+import com.stripe.model.Customer;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.Subscription;
+import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import com.stripe.param.CustomerCreateParams;
+import com.stripe.param.checkout.SessionCreateParams;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -204,6 +208,47 @@ class StripeServiceTest {
             stripeService.handleWebhookEvent("{}", "sig");
 
             verify(userRepository, never()).save(any());
+        }
+    }
+
+    @Test
+    void createCheckoutSession_existingCustomer_returnsUrl() throws Exception {
+        try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+            User user = new User("test", "pwd", Role.OPERATOR);
+            user.setStripeCustomerId("cus_existing");
+
+            Session session = mock(Session.class);
+            mockedSession.when(() -> Session.create(any(SessionCreateParams.class))).thenReturn(session);
+            when(session.getUrl()).thenReturn("https://checkout.stripe.com/test");
+
+            String url = stripeService.createCheckoutSession(user);
+
+            assertEquals("https://checkout.stripe.com/test", url);
+            verify(userRepository, never()).save(any());
+        }
+    }
+
+    @Test
+    void createCheckoutSession_newCustomer_createsCustomerThenReturnsUrl() throws Exception {
+        try (MockedStatic<Session> mockedSession = mockStatic(Session.class);
+             MockedStatic<Customer> mockedCustomer = mockStatic(Customer.class)) {
+
+            User user = new User("test", "pwd", Role.OPERATOR);
+            user.setEmail("test@test.com");
+
+            Customer customer = mock(Customer.class);
+            when(customer.getId()).thenReturn("cus_new");
+            mockedCustomer.when(() -> Customer.create(any(CustomerCreateParams.class))).thenReturn(customer);
+
+            Session session = mock(Session.class);
+            mockedSession.when(() -> Session.create(any(SessionCreateParams.class))).thenReturn(session);
+            when(session.getUrl()).thenReturn("https://checkout.stripe.com/test");
+
+            String url = stripeService.createCheckoutSession(user);
+
+            assertEquals("cus_new", user.getStripeCustomerId());
+            verify(userRepository).save(user);
+            assertEquals("https://checkout.stripe.com/test", url);
         }
     }
 

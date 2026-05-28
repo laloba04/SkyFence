@@ -1,5 +1,6 @@
 package com.skyfence.controller;
 
+import com.skyfence.dto.ZoneRequest;
 import com.skyfence.model.RestrictedZone;
 import com.skyfence.model.SubscriptionStatus;
 import com.skyfence.model.User;
@@ -34,7 +35,7 @@ public class ZoneController {
 
     @PostMapping
     @Operation(summary = "Añade una nueva zona restringida")
-    public ResponseEntity<?> create(@RequestBody RestrictedZone zone,
+    public ResponseEntity<?> create(@RequestBody ZoneRequest request,
                                     @AuthenticationPrincipal User user) {
         if (user != null
                 && user.getSubscriptionStatus() == SubscriptionStatus.FREE
@@ -44,6 +45,9 @@ public class ZoneController {
                     "message", "Upgrade to Pro to create more than " + FREE_ZONE_LIMIT + " zones"
             ));
         }
+        RestrictedZone zone = new RestrictedZone(
+                request.getName(), request.getType(),
+                request.getLatitude(), request.getLongitude(), request.getRadiusKm());
         return ResponseEntity.ok(zoneRepository.save(zone));
     }
 

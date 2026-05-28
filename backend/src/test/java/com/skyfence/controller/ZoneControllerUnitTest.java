@@ -1,5 +1,6 @@
 package com.skyfence.controller;
 
+import com.skyfence.dto.ZoneRequest;
 import com.skyfence.model.RestrictedZone;
 import com.skyfence.model.Role;
 import com.skyfence.model.SubscriptionStatus;
@@ -29,24 +30,31 @@ class ZoneControllerUnitTest {
         return new RestrictedZone("Test", "AIRPORT", 40.0, -3.0, 2.0);
     }
 
+    private ZoneRequest request() {
+        ZoneRequest r = new ZoneRequest();
+        r.setName("Test"); r.setType("AIRPORT");
+        r.setLatitude(40.0); r.setLongitude(-3.0); r.setRadiusKm(2.0);
+        return r;
+    }
+
     @Test
     void create_proUserAboveLimit_returns200() {
         User proUser = new User("prouser", "pwd", Role.ADMIN);
         proUser.setSubscriptionStatus(SubscriptionStatus.PRO);
         when(zoneRepository.save(any())).thenReturn(zone());
 
-        ResponseEntity<?> result = controller.create(zone(), proUser);
+        ResponseEntity<?> result = controller.create(request(), proUser);
 
         assertEquals(200, result.getStatusCode().value());
         verify(zoneRepository).save(any());
-        verify(zoneRepository, never()).count(); // PRO users bypass the count check
+        verify(zoneRepository, never()).count();
     }
 
     @Test
     void create_nullUser_returns200() {
         when(zoneRepository.save(any())).thenReturn(zone());
 
-        ResponseEntity<?> result = controller.create(zone(), null);
+        ResponseEntity<?> result = controller.create(request(), null);
 
         assertEquals(200, result.getStatusCode().value());
         verify(zoneRepository).save(any());
@@ -59,7 +67,7 @@ class ZoneControllerUnitTest {
         freeUser.setSubscriptionStatus(SubscriptionStatus.FREE);
         when(zoneRepository.count()).thenReturn(3L);
 
-        ResponseEntity<?> result = controller.create(zone(), freeUser);
+        ResponseEntity<?> result = controller.create(request(), freeUser);
 
         assertEquals(403, result.getStatusCode().value());
         verify(zoneRepository, never()).save(any());
@@ -72,7 +80,7 @@ class ZoneControllerUnitTest {
         when(zoneRepository.count()).thenReturn(2L);
         when(zoneRepository.save(any())).thenReturn(zone());
 
-        ResponseEntity<?> result = controller.create(zone(), freeUser);
+        ResponseEntity<?> result = controller.create(request(), freeUser);
 
         assertEquals(200, result.getStatusCode().value());
         verify(zoneRepository).save(any());
