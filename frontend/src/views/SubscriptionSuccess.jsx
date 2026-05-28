@@ -1,14 +1,36 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle } from 'lucide-react';
+import { authHeader, saveAuth, getToken, getUser } from '../auth';
+
+const API = import.meta.env.VITE_API_URL ?? '';
 
 export default function SubscriptionSuccess() {
   const navigate = useNavigate();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => navigate('/dashboard'), 5000);
+    async function refreshUser() {
+      try {
+        const res = await fetch(`${API}/api/users/me`, { headers: authHeader() });
+        if (res.ok) {
+          const updated = await res.json();
+          saveAuth(getToken(), updated);
+        }
+      } catch {
+        // si falla el fetch continuamos igualmente
+      } finally {
+        setReady(true);
+      }
+    }
+    refreshUser();
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => navigate('/dashboard'), 4000);
     return () => clearTimeout(t);
-  }, [navigate]);
+  }, [ready, navigate]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -19,7 +41,7 @@ export default function SubscriptionSuccess() {
         Tu plan Pro está activo. Ya puedes crear zonas ilimitadas.
       </p>
       <p style={{ margin: '0 0 32px', color: '#9ca3af', fontSize: '14px' }}>
-        Redirigiendo al dashboard en 5 segundos…
+        Redirigiendo al dashboard en unos segundos…
       </p>
       <button onClick={() => navigate('/dashboard')}
         style={{ padding: '10px 24px', borderRadius: '8px', background: '#16a34a', color: 'white',

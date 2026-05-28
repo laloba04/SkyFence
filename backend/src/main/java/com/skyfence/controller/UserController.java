@@ -6,6 +6,7 @@ import com.skyfence.model.User;
 import com.skyfence.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +20,13 @@ public class UserController {
 
     public UserController(UserRepository userRepository) {
         this.userRepository = userRepository;
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> me(@AuthenticationPrincipal User user) {
+        return userRepository.findById(user.getId())
+                .map(u -> ResponseEntity.ok(UserResponse.from(u)))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping
