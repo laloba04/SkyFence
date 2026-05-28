@@ -77,11 +77,39 @@ public class StripeService {
             throw new IllegalArgumentException("Invalid signature");
         }
 
+        log.info("Stripe webhook received: type={} id={}", event.getType(), event.getId());
+
         switch (event.getType()) {
+            case "checkout.session.completed" -> {
+                event.getDataObjectDeserializer().getObject().ifPresentOrElse(
+                        obj -> {
+                            Session session = (Session) obj;
+                            String userIdStr = session.getMetadata() != null
+                                    ? session.getMetadata().get("userId") : null;
+                            if (userIdStr == null) {
+                                log.warn("checkout.session.completed missing userId metadata");
+                                return;
+                            }
+                            userRepository.findById(Long.parseLong(userIdStr)).ifPresentOrElse(
+                                    user -> {
+                                        if (user.getStripeCustomerId() == null) {
+                                            user.setStripeCustomerId(session.getCustomer());
+                                        }
+                                        user.setSubscriptionStatus(SubscriptionStatus.PRO);
+                                        userRepository.save(user);
+                                        log.info("User '{}' upgraded to PRO via checkout.session.completed", user.getUsername());
+                                    },
+                                    () -> log.warn("User not found for userId={}", userIdStr)
+                            );
+                        },
+                        () -> log.warn("Could not deserialize session for event {}", event.getId())
+                );
+            }
             case "customer.subscription.updated", "customer.subscription.created" -> {
                 event.getDataObjectDeserializer().getObject().ifPresentOrElse(
                         obj -> {
                             Subscription sub = (Subscription) obj;
+                            log.info("Subscription event: customer={} status={}", sub.getCustomer(), sub.getStatus());
                             updateSubscription(sub.getCustomer(), sub.getStatus());
                         },
                         () -> log.warn("Could not deserialize subscription object for event {}", event.getId())
