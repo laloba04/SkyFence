@@ -10,4 +10,4 @@ WORKDIR /app
 COPY --from=build --chown=spring:spring /app/target/*.jar app.jar
 USER spring:spring
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]

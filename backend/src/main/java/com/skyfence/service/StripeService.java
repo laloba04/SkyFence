@@ -79,9 +79,13 @@ public class StripeService {
 
         switch (event.getType()) {
             case "customer.subscription.updated", "customer.subscription.created" -> {
-                Subscription sub = (Subscription) event.getDataObjectDeserializer()
-                        .getObject().orElseThrow();
-                updateSubscription(sub.getCustomer(), sub.getStatus());
+                event.getDataObjectDeserializer().getObject().ifPresentOrElse(
+                        obj -> {
+                            Subscription sub = (Subscription) obj;
+                            updateSubscription(sub.getCustomer(), sub.getStatus());
+                        },
+                        () -> log.warn("Could not deserialize subscription object for event {}", event.getId())
+                );
             }
             case "customer.subscription.deleted", "invoice.payment_failed" -> {
                 String customerId = extractCustomerId(event);
