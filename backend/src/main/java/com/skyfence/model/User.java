@@ -32,7 +32,7 @@ public class User implements UserDetails {
     private String stripeCustomerId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255) NOT NULL DEFAULT 'FREE'")
     private SubscriptionStatus subscriptionStatus = SubscriptionStatus.FREE;
 
     public User() {}
