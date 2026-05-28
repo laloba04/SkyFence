@@ -43,12 +43,21 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        // Stripe webhook: allow any origin (server-to-server, no credentials needed)
+        CorsConfiguration webhookConfig = new CorsConfiguration();
+        webhookConfig.addAllowedOriginPattern("*");
+        webhookConfig.setAllowedMethods(List.of("POST"));
+        webhookConfig.setAllowedHeaders(List.of("*"));
+        webhookConfig.setAllowCredentials(false);
+
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(Arrays.asList(allowedOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/stripe/webhook", webhookConfig);
         source.registerCorsConfiguration("/**", config);
         return source;
     }
@@ -63,7 +72,7 @@ public class SecurityConfig {
                 // auth endpoints — public
                 .requestMatchers("/api/auth/**").permitAll()
                 // Stripe webhook — public (signature verified inside handler)
-                .requestMatchers("/api/stripe/webhook").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/stripe/webhook").permitAll()
                 // docs y actuator — public
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/**").permitAll()

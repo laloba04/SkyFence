@@ -43,6 +43,8 @@ public class RateLimitInterceptor extends OncePerRequestFilter {
         if (path == null || path.isEmpty()) {
             path = request.getRequestURI();
         }
+        // Stripe webhook must not be rate-limited (server-to-server call)
+        if ("/api/stripe/webhook".equals(path)) return true;
         return !path.startsWith("/api/");
     }
 
