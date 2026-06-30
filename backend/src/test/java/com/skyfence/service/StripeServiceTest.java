@@ -253,6 +253,145 @@ class StripeServiceTest {
     }
 
     @Test
+    void handleWebhookEvent_checkoutSessionCompleted_upgradesUser() {
+        try (MockedStatic<Webhook> mocked = mockStatic(Webhook.class)) {
+            Event event = mock(Event.class);
+            EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+            Session session = mock(Session.class);
+
+            mocked.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                    .thenReturn(event);
+            when(event.getType()).thenReturn("checkout.session.completed");
+            when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+            when(deserializer.getObject()).thenReturn(Optional.of(session));
+            when(session.getMetadata()).thenReturn(java.util.Map.of("userId", "1"));
+            when(session.getCustomer()).thenReturn("cus_test");
+
+            User user = new User("testuser", "pwd", Role.OPERATOR);
+            user.setSubscriptionStatus(SubscriptionStatus.FREE);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            stripeService.handleWebhookEvent("{}", "sig");
+
+            assertEquals(SubscriptionStatus.PRO, user.getSubscriptionStatus());
+            assertEquals("cus_test", user.getStripeCustomerId());
+            verify(userRepository).save(user);
+        }
+    }
+
+    @Test
+    void handleWebhookEvent_checkoutSessionCompleted_missingMetadata_noSave() {
+        try (MockedStatic<Webhook> mocked = mockStatic(Webhook.class)) {
+            Event event = mock(Event.class);
+            EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+            Session session = mock(Session.class);
+
+            mocked.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                    .thenReturn(event);
+            when(event.getType()).thenReturn("checkout.session.completed");
+            when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+            when(deserializer.getObject()).thenReturn(Optional.of(session));
+            when(session.getMetadata()).thenReturn(null);
+
+            stripeService.handleWebhookEvent("{}", "sig");
+
+            verify(userRepository, never()).save(any());
+        }
+    }
+
+    @Test
+    void handleWebhookEvent_checkoutSessionCompleted_deserializationFails_noSave() {
+        try (MockedStatic<Webhook> mocked = mockStatic(Webhook.class)) {
+            Event event = mock(Event.class);
+            EventDataObjectDeserializer deserializer = mock(EventDataObjectDeserializer.class);
+
+            mocked.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
+                    .thenReturn(event);
+            when(event.getType()).thenReturn("checkout.session.completed");
+            when(event.getDataObjectDeserializer()).thenReturn(deserializer);
+            when(deserializer.getObject()).thenReturn(Optional.empty());
+
+            stripeService.handleWebhookEvent("{}", "sig");
+
+            verify(userRepository, never()).save(any());
+        }
+    }
+
+    @Test
+    void verifyAndUpgradeSession_paidSession_upgradesUser() throws Exception {
+        try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+            Session session = mock(Session.class);
+            mockedSession.when(() -> Session.retrieve("cs_test_abc")).thenReturn(session);
+            when(session.getStatus()).thenReturn("complete");
+            when(session.getPaymentStatus()).thenReturn("paid");
+            when(session.getCustomer()).thenReturn("cus_test");
+            when(session.getMetadata()).thenReturn(java.util.Map.of("userId", "1"));
+
+            User user = new User("testuser", "pwd", Role.OPERATOR);
+            user.setSubscriptionStatus(SubscriptionStatus.FREE);
+            when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+            User currentUser = new User("testuser", "pwd", Role.OPERATOR);
+
+            boolean result = stripeService.verifyAndUpgradeSession("cs_test_abc", currentUser);
+
+            assertTrue(result);
+            assertEquals(SubscriptionStatus.PRO, user.getSubscriptionStatus());
+            verify(userRepository).save(user);
+        }
+    }
+
+    @Test
+    void verifyAndUpgradeSession_unpaidSession_returnsFalse() throws Exception {
+        try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+            Session session = mock(Session.class);
+            mockedSession.when(() -> Session.retrieve("cs_test_abc")).thenReturn(session);
+            when(session.getStatus()).thenReturn("open");
+            when(session.getPaymentStatus()).thenReturn("unpaid");
+
+            User currentUser = new User("testuser", "pwd", Role.OPERATOR);
+
+            boolean result = stripeService.verifyAndUpgradeSession("cs_test_abc", currentUser);
+
+            assertFalse(result);
+            verify(userRepository, never()).save(any());
+        }
+    }
+
+    @Test
+    void verifyAndUpgradeSession_stripeException_returnsFalse() throws Exception {
+        try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+            mockedSession.when(() -> Session.retrieve("cs_test_err"))
+                    .thenThrow(new RuntimeException("Stripe error"));
+
+            User currentUser = new User("testuser", "pwd", Role.OPERATOR);
+
+            boolean result = stripeService.verifyAndUpgradeSession("cs_test_err", currentUser);
+
+            assertFalse(result);
+        }
+    }
+
+    @Test
+    void verifyAndUpgradeSession_userNotFound_returnsFalse() throws Exception {
+        try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+            Session session = mock(Session.class);
+            mockedSession.when(() -> Session.retrieve("cs_test_abc")).thenReturn(session);
+            when(session.getStatus()).thenReturn("complete");
+            when(session.getPaymentStatus()).thenReturn("paid");
+            when(session.getMetadata()).thenReturn(java.util.Map.of("userId", "999"));
+
+            when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+            User currentUser = new User("testuser", "pwd", Role.OPERATOR);
+
+            boolean result = stripeService.verifyAndUpgradeSession("cs_test_abc", currentUser);
+
+            assertFalse(result);
+        }
+    }
+
+    @Test
     void handleWebhookEvent_subscriptionUpdated_userNotFound_noSave() {
         try (MockedStatic<Webhook> mocked = mockStatic(Webhook.class)) {
             Event event = mock(Event.class);

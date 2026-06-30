@@ -38,6 +38,9 @@ public class CheckoutController {
         if (user == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
         }
+        if (session_id == null || !session_id.matches("^cs_(test|live)_[A-Za-z0-9]+$")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid session id"));
+        }
         boolean upgraded = stripeService.verifyAndUpgradeSession(session_id, user);
         return ResponseEntity.ok(Map.of("upgraded", upgraded));
     }

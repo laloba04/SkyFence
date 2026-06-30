@@ -66,4 +66,40 @@ class CheckoutControllerTest {
 
         assertEquals(200, result.getStatusCode().value());
     }
+
+    @Test
+    void verifyCheckout_nullUser_returns401() {
+        ResponseEntity<?> result = controller.verifyCheckout("cs_test_abc123", null);
+        assertEquals(401, result.getStatusCode().value());
+    }
+
+    @Test
+    void verifyCheckout_invalidSessionId_returns400() {
+        ResponseEntity<?> result = controller.verifyCheckout("invalid_id", testUser());
+        assertEquals(400, result.getStatusCode().value());
+    }
+
+    @Test
+    void verifyCheckout_nullSessionId_returns400() {
+        ResponseEntity<?> result = controller.verifyCheckout(null, testUser());
+        assertEquals(400, result.getStatusCode().value());
+    }
+
+    @Test
+    void verifyCheckout_validSession_upgraded_returns200() {
+        when(stripeService.verifyAndUpgradeSession("cs_test_abc123", testUser())).thenReturn(true);
+
+        ResponseEntity<?> result = controller.verifyCheckout("cs_test_abc123", testUser());
+
+        assertEquals(200, result.getStatusCode().value());
+    }
+
+    @Test
+    void verifyCheckout_validSession_notUpgraded_returns200() {
+        when(stripeService.verifyAndUpgradeSession("cs_live_abc123", testUser())).thenReturn(false);
+
+        ResponseEntity<?> result = controller.verifyCheckout("cs_live_abc123", testUser());
+
+        assertEquals(200, result.getStatusCode().value());
+    }
 }
