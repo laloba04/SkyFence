@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -87,7 +88,7 @@ class CheckoutControllerTest {
 
     @Test
     void verifyCheckout_validSession_upgraded_returns200() {
-        when(stripeService.verifyAndUpgradeSession("cs_test_abc123", testUser())).thenReturn(true);
+        when(stripeService.verifyAndUpgradeSession(eq("cs_test_abc123"), any(User.class))).thenReturn(true);
 
         ResponseEntity<?> result = controller.verifyCheckout("cs_test_abc123", testUser());
 
@@ -96,7 +97,7 @@ class CheckoutControllerTest {
 
     @Test
     void verifyCheckout_validSession_notUpgraded_returns200() {
-        when(stripeService.verifyAndUpgradeSession("cs_live_abc123", testUser())).thenReturn(false);
+        when(stripeService.verifyAndUpgradeSession(eq("cs_live_abc123"), any(User.class))).thenReturn(false);
 
         ResponseEntity<?> result = controller.verifyCheckout("cs_live_abc123", testUser());
 

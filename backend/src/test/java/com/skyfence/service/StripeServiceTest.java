@@ -323,7 +323,6 @@ class StripeServiceTest {
             Session session = mock(Session.class);
             mockedSession.when(() -> Session.retrieve("cs_test_abc")).thenReturn(session);
             when(session.getStatus()).thenReturn("complete");
-            when(session.getPaymentStatus()).thenReturn("paid");
             when(session.getCustomer()).thenReturn("cus_test");
             when(session.getMetadata()).thenReturn(java.util.Map.of("userId", "1"));
 
@@ -378,7 +377,6 @@ class StripeServiceTest {
             Session session = mock(Session.class);
             mockedSession.when(() -> Session.retrieve("cs_test_abc")).thenReturn(session);
             when(session.getStatus()).thenReturn("complete");
-            when(session.getPaymentStatus()).thenReturn("paid");
             when(session.getMetadata()).thenReturn(java.util.Map.of("userId", "999"));
 
             when(userRepository.findById(999L)).thenReturn(Optional.empty());
