@@ -1,21 +1,42 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, Loader } from 'lucide-react';
 import { authHeader, saveAuth, getToken } from '../auth';
 
 const API = import.meta.env.VITE_API_URL ?? '';
-const MAX_ATTEMPTS = 10;
-const INTERVAL_MS = 2000;
+const MAX_ATTEMPTS = 12;
+const INTERVAL_MS = 2500;
 
 export default function SubscriptionSuccess() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [confirmed, setConfirmed] = useState(false);
 
   useEffect(() => {
-    let attempts = 0;
     let stopped = false;
 
-    async function poll() {
+    async function confirm() {
+      const sessionId = searchParams.get('session_id');
+
+      // 1. Try direct session verification (fast path, no webhook needed)
+      if (sessionId) {
+        try {
+          const res = await fetch(
+            `${API}/api/checkout/verify?session_id=${encodeURIComponent(sessionId)}`,
+            { headers: authHeader() }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data.upgraded) {
+              await refreshUserAndFinish();
+              return;
+            }
+          }
+        } catch { /* fall through to polling */ }
+      }
+
+      // 2. Fallback: poll /api/users/me until PRO (webhook may still be processing)
+      let attempts = 0;
       while (attempts < MAX_ATTEMPTS && !stopped) {
         attempts++;
         try {
@@ -31,13 +52,25 @@ export default function SubscriptionSuccess() {
         } catch { /* continuar */ }
         await new Promise(r => setTimeout(r, INTERVAL_MS));
       }
-      // timeout: actualizar igualmente y redirigir
+
+      // Timeout: redirect anyway
       if (!stopped) setConfirmed(true);
     }
 
-    poll();
+    async function refreshUserAndFinish() {
+      try {
+        const res = await fetch(`${API}/api/users/me`, { headers: authHeader() });
+        if (res.ok) {
+          const user = await res.json();
+          saveAuth(getToken(), user);
+        }
+      } catch { /* si falla, el localStorage igual se actualizó en verify */ }
+      if (!stopped) setConfirmed(true);
+    }
+
+    confirm();
     return () => { stopped = true; };
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!confirmed) return;

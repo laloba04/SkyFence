@@ -123,6 +123,32 @@ public class StripeService {
         }
     }
 
+    public boolean verifyAndUpgradeSession(String sessionId, User currentUser) {
+        try {
+            Session session = Session.retrieve(sessionId);
+            if (!"complete".equals(session.getStatus()) && !"paid".equals(session.getPaymentStatus())) {
+                log.warn("Session {} not paid: status={} paymentStatus={}",
+                        sessionId, session.getStatus(), session.getPaymentStatus());
+                return false;
+            }
+            String userIdStr = session.getMetadata() != null ? session.getMetadata().get("userId") : null;
+            long userId = userIdStr != null ? Long.parseLong(userIdStr) : currentUser.getId();
+
+            return userRepository.findById(userId).map(user -> {
+                if (user.getStripeCustomerId() == null && session.getCustomer() != null) {
+                    user.setStripeCustomerId(session.getCustomer());
+                }
+                user.setSubscriptionStatus(SubscriptionStatus.PRO);
+                userRepository.save(user);
+                log.info("User '{}' verified PRO via session {}", user.getUsername(), sessionId);
+                return true;
+            }).orElse(false);
+        } catch (Exception e) {
+            log.error("Error verifying session {}: {}", sessionId, e.getMessage());
+            return false;
+        }
+    }
+
     private String ensureCustomer(User user) throws StripeException {
         if (user.getStripeCustomerId() != null) return user.getStripeCustomerId();
 

@@ -31,6 +31,17 @@ public class CheckoutController {
         }
     }
 
+    @GetMapping("/checkout/verify")
+    public ResponseEntity<?> verifyCheckout(
+            @RequestParam String session_id,
+            @AuthenticationPrincipal User user) {
+        if (user == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        }
+        boolean upgraded = stripeService.verifyAndUpgradeSession(session_id, user);
+        return ResponseEntity.ok(Map.of("upgraded", upgraded));
+    }
+
     @GetMapping("/subscription")
     public ResponseEntity<?> getSubscription(@AuthenticationPrincipal User user) {
         if (user == null) {

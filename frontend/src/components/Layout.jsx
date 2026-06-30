@@ -1,15 +1,28 @@
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheck, Map, Bell, MapPin, Activity, Users, LogOut, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { clearAuth, getUser, authHeader } from '../auth';
+import { clearAuth, getUser, saveAuth, getToken, authHeader } from '../auth';
 
 const API = import.meta.env.VITE_API_URL;
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = getUser();
+  const [user, setUser] = useState(getUser());
   const isAdmin = user?.role === 'ADMIN';
+
+  useEffect(() => {
+    fetch(`${API}/api/users/me`, { headers: authHeader() })
+      .then(r => r.ok ? r.json() : null)
+      .then(fresh => {
+        if (fresh) {
+          saveAuth(getToken(), fresh);
+          setUser(fresh);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const navItems = [
     { name: 'Dashboard Real-Time', path: '/dashboard', icon: Map },
