@@ -51,13 +51,11 @@ class ZoneControllerUnitTest {
     }
 
     @Test
-    void create_nullUser_returns200() {
-        when(zoneRepository.save(any())).thenReturn(zone());
-
+    void create_nullUser_returns401() {
         ResponseEntity<?> result = controller.create(request(), null);
 
-        assertEquals(200, result.getStatusCode().value());
-        verify(zoneRepository).save(any());
+        assertEquals(401, result.getStatusCode().value());
+        verify(zoneRepository, never()).save(any());
         verify(zoneRepository, never()).count();
     }
 

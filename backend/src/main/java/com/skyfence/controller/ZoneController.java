@@ -37,8 +37,10 @@ public class ZoneController {
     @Operation(summary = "Añade una nueva zona restringida")
     public ResponseEntity<?> create(@RequestBody ZoneRequest request,
                                     @AuthenticationPrincipal User user) {
-        if (user != null
-                && user.getSubscriptionStatus() == SubscriptionStatus.FREE
+        if (user == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+        if (user.getSubscriptionStatus() == SubscriptionStatus.FREE
                 && zoneRepository.count() >= FREE_ZONE_LIMIT) {
             return ResponseEntity.status(403).body(Map.of(
                     "error", "Free plan limit reached",
