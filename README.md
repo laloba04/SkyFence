@@ -29,6 +29,8 @@ Sistema de monitorización de aeronaves que consume datos reales de [adsb.fi](ht
 | **Backend API** | https://skyfence-backend.onrender.com |
 | **Swagger UI** | https://skyfence-backend.onrender.com/swagger-ui/index.html |
 | **Health check** | https://skyfence-backend.onrender.com/actuator/health |
+| **Grafana (métricas)** | https://skyfence-grafana.onrender.com/d/skyfence-backend/skyfence-backend |
+| **Prometheus** | https://skyfence-prometheus.onrender.com |
 
 > El backend en Render puede tardar ~30 s en responder si estuvo inactivo (free tier).
 
@@ -380,7 +382,7 @@ docker-compose -f monitoring/docker-compose.yml up
 | **Grafana** | http://localhost:3001 | Dashboards de métricas (JVM, CPU, HTTP) y Logs de Seguridad. |
 | **Prometheus** | http://localhost:9090 | Almacenamiento de métricas temporales de Actuator. |
 | **Loki** | http://localhost:3100 | Gestión centralizada de logs (formato JSON). |
-| **Dozzle** | http://localhost:8888 | Visualización de logs de contenedores en tiempo real. |
+| **Dozzle** | http://localhost:8081 | Visualización de logs de contenedores en tiempo real. |
 
 ### Dashboards Incluidos:
 - **SpringBoot APM:** Visualización detallada de la salud de la JVM, uso de memoria, hilos y latencia de peticiones.
@@ -389,3 +391,12 @@ docker-compose -f monitoring/docker-compose.yml up
 ### Mejores Prácticas de Logs:
 - Los logs de seguridad se emiten con el prefijo `SECURITY ALERT:` y nivel `WARN` para facilitar el filtrado en Loki.
 - Se utiliza el formato estructurado de SLF4J para asegurar que el contenido sea indexable.
+
+### Observabilidad en producción (Render)
+
+Además del stack local, Grafana y Prometheus están desplegados en Render (free tier) mediante el blueprint `render.yaml`:
+
+- **Prometheus** (`monitoring/render/prometheus/`) scrapea el backend público (`skyfence-backend.onrender.com/actuator/prometheus`) cada 30 s.
+- **Grafana** (`monitoring/render/grafana/`) sirve el dashboard *SkyFence Backend* con acceso anónimo de solo lectura (sin panel de Loki, que solo existe en local).
+- El dashboard se embebe en la vista **Salud del Sistema** del frontend vía `VITE_GRAFANA_URL`.
+- El workflow `.github/workflows/keep-alive.yml` hace ping cada 10 min para evitar que los servicios free se duerman y pierdan el histórico de métricas.

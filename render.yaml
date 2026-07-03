@@ -1,0 +1,28 @@
+services:
+  # Prometheus: scrapea las métricas del backend público cada 30s
+  - type: web
+    name: skyfence-prometheus
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./monitoring/render/prometheus/Dockerfile
+    dockerContext: ./monitoring/render/prometheus
+    envVars:
+      - key: PORT
+        value: 9090
+
+  # Grafana: dashboards públicos en modo solo lectura (acceso anónimo Viewer)
+  - type: web
+    name: skyfence-grafana
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./monitoring/render/grafana/Dockerfile
+    dockerContext: ./monitoring/render/grafana
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: PROMETHEUS_URL
+        value: https://skyfence-prometheus.onrender.com
+      - key: GF_SECURITY_ADMIN_PASSWORD
+        sync: false

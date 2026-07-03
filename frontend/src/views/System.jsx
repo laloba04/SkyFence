@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Activity, Database, Cloud, Radio } from 'lucide-react';
+import { Activity, Database, Cloud, Radio, BarChart3, ExternalLink } from 'lucide-react';
+
+const GRAFANA_URL = import.meta.env.VITE_GRAFANA_URL;
+const GRAFANA_DASHBOARD = `${GRAFANA_URL}/d/skyfence-backend/skyfence-backend`;
 
 const SkeletonCard = ({ delay = 0 }) => (
   <div style={{ background: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', borderTop: '4px solid #e5e7eb' }}>
@@ -77,6 +80,32 @@ export default function System() {
           <ComponentCard name="adsb.fi API" icon={Cloud} status={health.components?.adsbfi?.status} statusDetails={health.components?.adsbfi?.details || {}} />
           <ComponentCard name="Broker STOMP (WebSockets)" icon={Radio} status={health.components?.websocket?.status} statusDetails={health.components?.websocket?.details || {}} />
         </div>
+      )}
+
+      {GRAFANA_URL && (
+        <section style={{ marginTop: '48px' }}>
+          <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <h2 style={{ margin: 0, fontSize: '22px', color: '#111827', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <BarChart3 color="#f59e0b" /> Métricas en vivo (Grafana)
+              </h2>
+              <p style={{ margin: '6px 0 0 0', color: '#6b7280' }}>Tráfico HTTP, JVM, base de datos y sistema — Prometheus + Grafana.</p>
+            </div>
+            <a
+              href={GRAFANA_DASHBOARD}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#111827', color: 'white', padding: '10px 16px', borderRadius: '8px', textDecoration: 'none', fontSize: '14px', fontWeight: '500' }}
+            >
+              Abrir en Grafana <ExternalLink size={16} />
+            </a>
+          </header>
+          <iframe
+            src={`${GRAFANA_DASHBOARD}?kiosk&refresh=30s&from=now-1h&to=now`}
+            title="Dashboard SkyFence en Grafana"
+            style={{ width: '100%', height: '900px', border: 'none', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', background: '#111217' }}
+          />
+        </section>
       )}
     </div>
   );
