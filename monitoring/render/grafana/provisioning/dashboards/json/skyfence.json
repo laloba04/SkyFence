@@ -32,6 +32,225 @@
         "x": 0,
         "y": 0
       },
+      "id": 44,
+      "title": "SkyFence Business",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
+      "id": 45,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "title": "Aeronaves rastreadas",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "skyfence_aircraft_tracked{job=\"skyfence-backend\"}",
+          "legendFormat": "Aeronaves rastreadas",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s",
+          "decimals": 3
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 4,
+        "x": 4,
+        "y": 1
+      },
+      "id": 46,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "title": "Latencia publicación alertas",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(rate(skyfence_alert_publish_seconds_sum{job=\"skyfence-backend\"}[15m])) / sum(rate(skyfence_alert_publish_seconds_count{job=\"skyfence-backend\"}[15m]))",
+          "legendFormat": "Latencia publicación alertas",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 12,
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 1
+      },
+      "id": 47,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "Detecciones por hora (por severidad)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (severity) (increase(skyfence_alerts_total{job=\"skyfence-backend\"}[1h]))",
+          "legendFormat": "{{severity}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 12,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      },
+      "id": 48,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "title": "Solicitudes fallidas por endpoint",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (uri, status) (rate(http_server_requests_seconds_count{job=\"skyfence-backend\",status=~\"4..|5..\"}[5m]))",
+          "legendFormat": "{{status}} {{uri}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
       "id": 1,
       "title": "Overview",
       "type": "row"
@@ -82,7 +301,7 @@
         "h": 3,
         "w": 3,
         "x": 0,
-        "y": 1
+        "y": 9
       },
       "id": 2,
       "options": {
@@ -136,7 +355,7 @@
         "h": 3,
         "w": 3,
         "x": 3,
-        "y": 1
+        "y": 9
       },
       "id": 3,
       "options": {
@@ -198,7 +417,7 @@
         "h": 3,
         "w": 3,
         "x": 6,
-        "y": 1
+        "y": 9
       },
       "id": 4,
       "options": {
@@ -260,7 +479,7 @@
         "h": 3,
         "w": 3,
         "x": 9,
-        "y": 1
+        "y": 9
       },
       "id": 5,
       "options": {
@@ -322,7 +541,7 @@
         "h": 3,
         "w": 3,
         "x": 12,
-        "y": 1
+        "y": 9
       },
       "id": 6,
       "options": {
@@ -384,7 +603,7 @@
         "h": 3,
         "w": 3,
         "x": 15,
-        "y": 1
+        "y": 9
       },
       "id": 7,
       "options": {
@@ -446,7 +665,7 @@
         "h": 3,
         "w": 3,
         "x": 18,
-        "y": 1
+        "y": 9
       },
       "id": 8,
       "options": {
@@ -480,7 +699,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 4
+        "y": 12
       },
       "id": 10,
       "title": "HTTP Traffic",
@@ -504,7 +723,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 5
+        "y": 13
       },
       "id": 11,
       "options": {
@@ -552,7 +771,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 5
+        "y": 13
       },
       "id": 12,
       "options": {
@@ -600,7 +819,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 13
+        "y": 21
       },
       "id": 13,
       "options": {
@@ -648,7 +867,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 13
+        "y": 21
       },
       "id": 14,
       "options": {
@@ -684,7 +903,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 21
+        "y": 29
       },
       "id": 20,
       "title": "JVM Memory & Threads",
@@ -708,7 +927,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 22
+        "y": 30
       },
       "id": 21,
       "options": {
@@ -774,7 +993,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 22
+        "y": 30
       },
       "id": 22,
       "options": {
@@ -831,7 +1050,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 30
+        "y": 38
       },
       "id": 23,
       "options": {
@@ -897,7 +1116,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 30
+        "y": 38
       },
       "id": 24,
       "options": {
@@ -933,7 +1152,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 46
       },
       "id": 30,
       "title": "Database (HikariCP)",
@@ -957,7 +1176,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 39
+        "y": 47
       },
       "id": 31,
       "options": {
@@ -1032,7 +1251,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 39
+        "y": 47
       },
       "id": 32,
       "options": {
@@ -1068,7 +1287,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 55
       },
       "id": 40,
       "title": "System",
@@ -1092,7 +1311,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 48
+        "y": 56
       },
       "id": 41,
       "options": {
@@ -1149,7 +1368,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 48
+        "y": 56
       },
       "id": 42,
       "options": {
@@ -1197,7 +1416,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 48
+        "y": 56
       },
       "id": 43,
       "options": {

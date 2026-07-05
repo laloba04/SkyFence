@@ -6,6 +6,7 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.retry.RetryConfig;
 import io.github.resilience4j.retry.RetryRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +45,7 @@ class FlightDataResilienceTest {
 
         FlightDataService service = new FlightDataService(
                 "http://localhost", null, null, null,
-                retryRegistry, circuitBreakerRegistry) {
+                retryRegistry, circuitBreakerRegistry, new SimpleMeterRegistry()) {
             @Override
             protected Map<String, Object> fetchFromApi() {
                 callCount.incrementAndGet();
@@ -64,7 +65,7 @@ class FlightDataResilienceTest {
 
         FlightDataService service = new FlightDataService(
                 "http://localhost", null, null, null,
-                retryRegistry, circuitBreakerRegistry) {
+                retryRegistry, circuitBreakerRegistry, new SimpleMeterRegistry()) {
             @Override
             protected Map<String, Object> fetchFromApi() {
                 throw new RuntimeException("API down");
@@ -86,7 +87,7 @@ class FlightDataResilienceTest {
 
         FlightDataService service = new FlightDataService(
                 "http://localhost", null, null, null,
-                retryRegistry, circuitBreakerRegistry) {
+                retryRegistry, circuitBreakerRegistry, new SimpleMeterRegistry()) {
             @Override
             protected Map<String, Object> fetchFromApi() {
                 callCount.incrementAndGet();
@@ -126,7 +127,7 @@ class FlightDataResilienceTest {
         FlightDataService service = new FlightDataService(
                 "http://localhost", null, null, null,
                 RetryRegistry.of(RetryConfig.custom().maxAttempts(1).waitDuration(Duration.ZERO).build()),
-                fastRegistry) {
+                fastRegistry, new SimpleMeterRegistry()) {
             @Override
             protected Map<String, Object> fetchFromApi() {
                 callCount.incrementAndGet();

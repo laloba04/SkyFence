@@ -364,7 +364,6 @@ El análisis cubre el módulo `backend/` (Java 17). La configuración del workfl
 
 - Autenticación con JWT y gestión de roles.
 - Hardening de seguridad: profiles Spring Boot (dev/prod), headers HTTP de seguridad.
-- Métricas de negocio personalizadas en Grafana (alertas/hora, detecciones por severidad).
 - Logging estructurado con correlation IDs para trazabilidad distribuida.
 
 ---
@@ -387,6 +386,16 @@ docker-compose -f monitoring/docker-compose.yml up
 ### Dashboards Incluidos:
 - **SpringBoot APM:** Visualización detallada de la salud de la JVM, uso de memoria, hilos y latencia de peticiones.
 - **Security Alerts:** Panel basado en Loki para filtrar y visualizar alertas de intrusión (ej. Rate Limiting superado).
+- **SkyFence Business:** Fila superior del dashboard con las métricas de negocio del dominio.
+
+### Métricas de negocio personalizadas (Micrometer)
+
+| Métrica | Tipo | Qué mide | Utilidad |
+|---------|------|----------|----------|
+| `skyfence_alerts_total{severity, zone_type}` | Counter | Alertas de intrusión generadas, etiquetadas por severidad (`HIGH`/`MEDIUM`) y tipo de zona (`AIRPORT`/`MILITARY`/`NUCLEAR`) | Detecciones/hora (`increase(...[1h])`), distribución por severidad y qué tipos de zona concentran más intrusiones |
+| `skyfence_alert_publish_seconds` | Timer | Latencia de persistir una alerta y publicarla por WebSocket al frontend | Salud del pipeline de alertas en tiempo real; detectar degradación de BD o del broker STOMP |
+| `skyfence_aircraft_tracked` | Gauge | Aeronaves rastreadas actualmente sobre España (caché de adsb.fi) | Cobertura del sistema; una caída a 0 delata problemas con la API externa |
+| `http_server_requests_seconds_count{status=~"4..\|5.."}` | Counter (Spring) | Solicitudes fallidas por endpoint y código de estado | Endpoints problemáticos, abuso (429 del rate limiting) y errores 5xx |
 
 ### Mejores Prácticas de Logs:
 - Los logs de seguridad se emiten con el prefijo `SECURITY ALERT:` y nivel `WARN` para facilitar el filtrado en Loki.

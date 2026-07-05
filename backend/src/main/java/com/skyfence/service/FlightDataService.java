@@ -1,6 +1,8 @@
 package com.skyfence.service;
 
 import com.skyfence.model.Aircraft;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
@@ -42,7 +44,8 @@ public class FlightDataService {
             AlertService alertService,
             AircraftService aircraftService,
             RetryRegistry retryRegistry,
-            CircuitBreakerRegistry circuitBreakerRegistry) {
+            CircuitBreakerRegistry circuitBreakerRegistry,
+            MeterRegistry meterRegistry) {
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
                 .codecs(c -> c.defaultCodecs().maxInMemorySize(4 * 1024 * 1024))
@@ -59,6 +62,10 @@ public class FlightDataService {
         this.circuitBreaker.getEventPublisher()
                 .onStateTransition(e -> log.warn("SECURITY ALERT: Estado de conexión con adsb.fi → {}",
                         e.getStateTransition()));
+
+        Gauge.builder("skyfence.aircraft.tracked", this, s -> s.cachedAircraft.size())
+                .description("Aeronaves rastreadas actualmente sobre España")
+                .register(meterRegistry);
     }
 
     @Scheduled(fixedDelayString = "${geofence.check.interval}")
