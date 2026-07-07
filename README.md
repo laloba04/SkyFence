@@ -362,7 +362,6 @@ El análisis cubre el módulo `backend/` (Java 17). La configuración del workfl
 
 ## Roadmap y futuras mejoras
 
-- Autenticación con JWT y gestión de roles.
 - Hardening de seguridad: profiles Spring Boot (dev/prod), headers HTTP de seguridad.
 - Logging estructurado con correlation IDs para trazabilidad distribuida.
 
@@ -400,6 +399,19 @@ docker-compose -f monitoring/docker-compose.yml up
 ### Mejores Prácticas de Logs:
 - Los logs de seguridad se emiten con el prefijo `SECURITY ALERT:` y nivel `WARN` para facilitar el filtrado en Loki.
 - Se utiliza el formato estructurado de SLF4J para asegurar que el contenido sea indexable.
+
+### Correlation IDs (trazabilidad de peticiones)
+
+Cada petición HTTP recibe un **correlation ID** único que viaja por todo el backend:
+
+- **Header `X-Request-ID`**: si el cliente lo envía se respeta (saneado: solo alfanuméricos, máx. 64 chars); si no, se genera un UUID. Siempre se devuelve en la respuesta.
+- **En los logs**: todos los logs de una petición comparten el mismo `requestId` — campo JSON en producción, entre corchetes en dev (`[uuid] [event] [userId] [ip]`).
+- **Ciclos del scheduler**: cada barrido de aeronaves (adsb.fi → geofencing → alertas) usa un ID `sched-<uuid>`, de modo que todos los logs de un mismo ciclo se pueden agrupar.
+
+**Cómo depurar un flujo:**
+1. Reproduce el problema y copia el `X-Request-ID` de la respuesta (visible en las DevTools del navegador, pestaña Network).
+2. En Grafana → Explore → Loki, filtra: `{container="skyfence-backend-1"} |= "<request-id>"` — aparecen todos los logs de esa petición en orden.
+3. Sin Loki: `docker logs skyfence-backend-1 | grep "<request-id>"`.
 
 ### Observabilidad en producción (Render)
 

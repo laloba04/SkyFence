@@ -10,6 +10,7 @@ import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -19,6 +20,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 @Service
@@ -70,8 +72,14 @@ public class FlightDataService {
 
     @Scheduled(fixedDelayString = "${geofence.check.interval}")
     public void checkAndAlert() {
-        fetchLiveAircraft().forEach(aircraft ->
-                geofenceService.checkAircraft(aircraft).forEach(alertService::sendAlert));
+        // Correlation ID por ciclo de barrido: traza todos los logs de un mismo ciclo
+        MDC.put("requestId", "sched-" + UUID.randomUUID());
+        try {
+            fetchLiveAircraft().forEach(aircraft ->
+                    geofenceService.checkAircraft(aircraft).forEach(alertService::sendAlert));
+        } finally {
+            MDC.remove("requestId");
+        }
     }
 
     @SuppressWarnings("unchecked")

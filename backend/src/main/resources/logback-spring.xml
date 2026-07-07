@@ -4,6 +4,7 @@
     <springProfile name="prod">
         <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>requestId</includeMdcKeyName>
                 <includeMdcKeyName>userId</includeMdcKeyName>
                 <includeMdcKeyName>ip</includeMdcKeyName>
                 <includeMdcKeyName>event</includeMdcKeyName>
@@ -18,7 +19,7 @@
     <springProfile name="!prod">
         <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
             <encoder>
-                <pattern>%d{HH:mm:ss} %-5level [%X{event}] [%X{userId}] [%X{ip}] %logger{36} - %msg%n</pattern>
+                <pattern>%d{HH:mm:ss} %-5level [%X{requestId}] [%X{event}] [%X{userId}] [%X{ip}] %logger{36} - %msg%n</pattern>
             </encoder>
         </appender>
 
