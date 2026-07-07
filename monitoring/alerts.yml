@@ -1,0 +1,110 @@
+# Reglas de alerta de SkyFence.
+# Se evalúan dentro de Prometheus (sin Alertmanager: el free tier de Render no
+# da para otro servicio). Las alertas activas se consultan en /alerts, vía la
+# métrica ALERTS y desde el workflow .github/workflows/health-alert.yml, que
+# es quien notifica (abre un issue "outage" en GitHub → correo automático).
+#
+# Umbrales parametrizados: ajustar "expr" (valor) y "for" (duración sostenida)
+# según madurez del proyecto. Severidades: critical (afecta al servicio) y
+# warning (degradación, aún funciona).
+groups:
+  - name: skyfence
+    rules:
+      # ── Disponibilidad ────────────────────────────────────────────────
+      - alert: BackendDown
+        expr: up{job="skyfence-backend"} == 0
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "El backend de SkyFence no responde"
+          description: "Prometheus lleva 3 minutos sin poder leer /actuator/prometheus. Puede ser una caída real o un redespliegue largo en Render."
+
+      # ── API de vuelos (adsb.fi) ───────────────────────────────────────
+      - alert: FlightApiDown
+        expr: resilience4j_circuitbreaker_state{name="flightData", state="open"} == 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "adsb.fi no responde: circuit breaker abierto"
+          description: "El circuit breaker de la API de vuelos lleva 2 minutos abierto. El sistema sirve la caché local, pero los datos no se refrescan."
+
+      - alert: FlightApiSlow
+        expr: resilience4j_circuitbreaker_slow_call_rate{name="flightData"} > 50
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latencia inusual en adsb.fi"
+          description: "Más del 50% de las llamadas a la API de vuelos son lentas desde hace 10 minutos."
+
+      - alert: NoAircraftTracked
+        expr: skyfence_aircraft_tracked == 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "0 aeronaves rastreadas"
+          description: "Llevamos 15 minutos sin rastrear ninguna aeronave sobre España. Probable problema con la API de vuelos o con el scheduler."
+
+      # ── Errores HTTP ──────────────────────────────────────────────────
+      - alert: HighHttpErrorRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            / sum(rate(http_server_requests_seconds_count[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Tasa de errores HTTP 5xx elevada"
+          description: "Más del 5% de las respuestas del backend son 5xx desde hace 5 minutos."
+
+      # ── Base de datos ─────────────────────────────────────────────────
+      - alert: DatabaseConnectionTimeouts
+        expr: increase(hikaricp_connections_timeout_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Timeouts obteniendo conexiones de base de datos"
+          description: "HikariCP ha registrado timeouts al pedir conexiones en los últimos 5 minutos. La base de datos puede estar caída o saturada."
+
+      - alert: DatabasePoolSaturated
+        expr: hikaricp_connections_active / hikaricp_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Pool de conexiones de BD casi agotado"
+          description: "Más del 90% de las conexiones del pool llevan 5 minutos en uso."
+
+      # ── Salud interna ─────────────────────────────────────────────────
+      - alert: HighErrorLogRate
+        expr: increase(logback_events_total{level="error"}[10m]) > 20
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Ráfaga de logs de error en el backend"
+          description: "Más de 20 logs de nivel ERROR en 10 minutos. Revisar los logs (con su requestId) en Loki o Dozzle."
+
+      - alert: SlowAlertPublish
+        expr: |
+          sum(rate(skyfence_alert_publish_seconds_sum[10m]))
+            / sum(rate(skyfence_alert_publish_seconds_count[10m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Publicación de alertas geofence lenta"
+          description: "Guardar + emitir una alerta por WebSocket tarda más de 500 ms de media desde hace 10 minutos (lo normal son ~2 ms)."
+
+      - alert: HighJvmHeapAfterGc
+        expr: max(jvm_memory_usage_after_gc_percent) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memoria JVM alta tras GC"
+          description: "El heap sigue por encima del 90% después del garbage collector. Riesgo de OutOfMemory en el free tier (512 MB)."

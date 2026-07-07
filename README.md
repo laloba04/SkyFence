@@ -363,7 +363,6 @@ El análisis cubre el módulo `backend/` (Java 17). La configuración del workfl
 ## Roadmap y futuras mejoras
 
 - Hardening de seguridad: profiles Spring Boot (dev/prod), headers HTTP de seguridad.
-- Logging estructurado con correlation IDs para trazabilidad distribuida.
 
 ---
 
@@ -421,3 +420,30 @@ Además del stack local, Grafana y Prometheus están desplegados en Render (free
 - **Grafana** (`monitoring/render/grafana/`) sirve el dashboard *SkyFence Backend* con acceso anónimo de solo lectura (sin panel de Loki, que solo existe en local).
 - El dashboard se embebe en la vista **Salud del Sistema** del frontend vía `VITE_GRAFANA_URL`.
 - El workflow `.github/workflows/keep-alive.yml` hace ping cada 10 min para evitar que los servicios free se duerman y pierdan el histórico de métricas.
+
+### Alertas automáticas ante caídas y errores críticos
+
+El sistema de alertas funciona sin Alertmanager (el free tier de Render no admite otro servicio) combinando dos piezas:
+
+**1. Reglas de alerta en Prometheus** (`monitoring/alerts.yml`, desplegadas también en Render): Prometheus las evalúa continuamente y expone su estado en [`/alerts`](https://skyfence-prometheus.onrender.com/alerts) y vía la API (`/api/v1/alerts`).
+
+| Alerta | Severidad | Se dispara cuando... |
+|--------|-----------|----------------------|
+| `BackendDown` | critical | El backend lleva 3 min sin responder al scrape |
+| `FlightApiDown` | critical | El circuit breaker de adsb.fi lleva 2 min abierto |
+| `FlightApiSlow` | warning | >50% de llamadas lentas a adsb.fi durante 10 min |
+| `NoAircraftTracked` | warning | 0 aeronaves rastreadas durante 15 min |
+| `HighHttpErrorRate` | critical | >5% de respuestas 5xx durante 5 min |
+| `DatabaseConnectionTimeouts` | critical | Timeouts de HikariCP al pedir conexiones de BD |
+| `DatabasePoolSaturated` | warning | >90% del pool de conexiones en uso durante 5 min |
+| `HighErrorLogRate` | warning | >20 logs `ERROR` en 10 min |
+| `SlowAlertPublish` | warning | Publicar una alerta tarda >500 ms de media (normal: ~2 ms) |
+| `HighJvmHeapAfterGc` | warning | Heap >90% tras GC durante 10 min (riesgo de OOM en 512 MB) |
+
+Los umbrales están parametrizados en el propio YAML (`expr` y `for`) para ajustarlos según madure el proyecto.
+
+**2. Notificaciones vía GitHub Actions** (`.github/workflows/health-alert.yml`): cada 15 min comprueba backend, frontend, Grafana y Prometheus, y consulta las alertas *firing*. Si detecta una caída o una alerta **critical**:
+
+- Abre un issue con la etiqueta `outage` (GitHub envía correo automáticamente) con el detalle y enlaces a Prometheus/Grafana/Render.
+- **Anti-spam**: nunca hay más de un issue de caída abierto; las alertas *warning* solo quedan en el log del workflow.
+- Cuando todo se recupera, el issue se cierra solo con un comentario de resolución.

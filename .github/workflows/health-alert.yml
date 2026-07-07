@@ -1,0 +1,97 @@
+name: Health check y alertas
+
+# Vigila la producción cada 15 min y notifica sin necesitar Alertmanager
+# (el free tier de Render no da para otro servicio):
+#   1. Comprueba backend, frontend, Grafana y Prometheus.
+#   2. Consulta en Prometheus las alertas "firing" de monitoring/alerts.yml.
+#   3. Si hay caída o alerta crítica, abre UN issue con la etiqueta "outage"
+#      (GitHub avisa por correo) y lo cierra solo cuando todo se recupera.
+# Anti-spam: nunca hay más de un issue de caída abierto; los warnings solo
+# se registran en el log del workflow.
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Comprobar servicios y gestionar issue de caída
+        run: |
+          problemas=""
+          avisos=""
+
+          check() { curl -s -o /dev/null -w "%{http_code}" --max-time 90 "$1" 2>/dev/null || echo 000; }
+
+          # Backend: con reintento, porque el free tier de Render puede tardar
+          # ~1 min en despertar o estar en mitad de un redespliegue.
+          code=$(check https://skyfence-backend.onrender.com/actuator/health)
+          if [ "$code" != "200" ]; then
+            echo "Backend HTTP $code, reintentando en 90s..."
+            sleep 90
+            code=$(check https://skyfence-backend.onrender.com/actuator/health)
+            [ "$code" != "200" ] && problemas="$problemas- ❌ **Backend** caído (HTTP $code)\n"
+          fi
+
+          code=$(check https://sky-fence.vercel.app)
+          [ "$code" != "200" ] && problemas="$problemas- ❌ **Frontend** caído (HTTP $code)\n"
+
+          code=$(check https://skyfence-grafana.onrender.com/api/health)
+          [ "$code" != "200" ] && problemas="$problemas- ❌ **Grafana** caído (HTTP $code)\n"
+
+          code=$(check https://skyfence-prometheus.onrender.com/-/healthy)
+          if [ "$code" != "200" ]; then
+            problemas="$problemas- ❌ **Prometheus** caído (HTTP $code)\n"
+          else
+            json=$(curl -s --max-time 60 https://skyfence-prometheus.onrender.com/api/v1/alerts || echo '{}')
+            criticas=$(echo "$json" | jq -r '[.data.alerts[]? | select(.state=="firing" and .labels.severity=="critical") | .labels.alertname] | unique | join(", ")')
+            warnings=$(echo "$json" | jq -r '[.data.alerts[]? | select(.state=="firing" and .labels.severity=="warning") | .labels.alertname] | unique | join(", ")')
+            [ -n "$criticas" ] && problemas="$problemas- 🔥 **Alertas críticas** en Prometheus: $criticas\n"
+            [ -n "$warnings" ] && avisos="$avisos- ⚠️ Alertas warning en Prometheus: $warnings\n"
+          fi
+
+          [ -n "$avisos" ] && printf "Avisos (no abren issue):\n%b" "$avisos"
+
+          abierto=$(gh issue list -R "$REPO" --label outage --state open --json number --jq '.[0].number // empty')
+
+          if [ -n "$problemas" ]; then
+            printf "Problemas detectados:\n%b" "$problemas"
+            if [ -z "$abierto" ]; then
+              gh label create outage -R "$REPO" --color D93F0B \
+                --description "Caída de servicio detectada automáticamente" 2>/dev/null || true
+              {
+                echo "El health check automático ha detectado problemas:"
+                echo ""
+                printf "%b" "$problemas"
+                printf "%b" "$avisos"
+                echo ""
+                echo "**Enlaces útiles:**"
+                echo "- [Alertas en Prometheus](https://skyfence-prometheus.onrender.com/alerts)"
+                echo "- [Dashboard de Grafana](https://skyfence-grafana.onrender.com/d/skyfence-backend/skyfence-backend)"
+                echo "- [Panel de Render](https://dashboard.render.com/)"
+                echo ""
+                echo "_Este issue se cerrará automáticamente cuando todos los servicios se recuperen._"
+              } > body.md
+              gh issue create -R "$REPO" --label outage \
+                --title "🚨 Caída detectada en SkyFence ($(date -u +'%d-%m-%Y %H:%M UTC'))" \
+                --body-file body.md
+              # Solo falla el workflow en la PRIMERA detección: un correo de
+              # aviso y ya, sin repetir cada 15 min mientras dure la caída.
+              exit 1
+            else
+              echo "Ya existe el issue de caída #$abierto abierto; no se duplica."
+            fi
+          else
+            echo "Todos los servicios OK."
+            if [ -n "$abierto" ]; then
+              gh issue close "$abierto" -R "$REPO" \
+                --comment "✅ Todos los servicios responden de nuevo ($(date -u +'%d-%m-%Y %H:%M UTC')). Cierre automático del health check."
+            fi
+          fi
