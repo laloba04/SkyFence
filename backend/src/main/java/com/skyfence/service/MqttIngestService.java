@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Fuente de datos alternativa a adsb.fi: sensores IoT que publican posiciones
@@ -68,7 +69,8 @@ public class MqttIngestService implements MqttCallbackExtended {
                 return t;
             });
 
-    private volatile MqttClient client;
+    // Se escribe al (re)conectar y se lee desde los hilos de Paho (java:S3077)
+    private final AtomicReference<MqttClient> client = new AtomicReference<>();
 
     public MqttIngestService(
             @Value("${skyfence.mqtt.broker-url}") String brokerUrl,
@@ -103,7 +105,7 @@ public class MqttIngestService implements MqttCallbackExtended {
     @EventListener(ApplicationReadyEvent.class)
     public void connect() {
         try {
-            client = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
+            MqttClient newClient = new MqttClient(brokerUrl, clientId, new MemoryPersistence());
             MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
             options.setCleanSession(true);
@@ -112,8 +114,9 @@ public class MqttIngestService implements MqttCallbackExtended {
                 options.setUserName(username);
                 options.setPassword(password.toCharArray());
             }
-            client.setCallback(this);
-            client.connect(options);
+            newClient.setCallback(this);
+            client.set(newClient);
+            newClient.connect(options);
             log.info("MQTT: conectado a {} (topic '{}')", brokerUrl, topic);
         } catch (MqttException e) {
             // La reconexión automática de Paho solo actúa tras una primera conexión
@@ -128,7 +131,7 @@ public class MqttIngestService implements MqttCallbackExtended {
     @Override
     public void connectComplete(boolean reconnect, String serverURI) {
         try {
-            client.subscribe(topic, qos);
+            client.get().subscribe(topic, qos);
             log.info("MQTT: suscrito a '{}' (qos {}){}", topic, qos, reconnect ? " tras reconexión" : "");
         } catch (MqttException e) {
             log.error("MQTT: no se pudo suscribir a '{}': {}", topic, e.getMessage());
@@ -201,9 +204,10 @@ public class MqttIngestService implements MqttCallbackExtended {
     @PreDestroy
     public void disconnect() {
         reconnectExecutor.shutdownNow();
-        if (client != null && client.isConnected()) {
+        MqttClient current = client.get();
+        if (current != null && current.isConnected()) {
             try {
-                client.disconnect();
+                current.disconnect();
                 log.info("MQTT: desconectado de {}", brokerUrl);
             } catch (MqttException e) {
                 log.warn("MQTT: error al desconectar: {}", e.getMessage());
