@@ -66,6 +66,10 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(Customizer.withDefaults())
+            // CSRF desactivado a propósito (CodeQL: java/spring-disabled-csrf-protection).
+            // La API es stateless: la autenticación viaja en el header Authorization
+            // (Bearer JWT desde localStorage), nunca en cookies, así que el navegador
+            // no puede adjuntarla automáticamente en una petición cross-site.
             .csrf(csrf -> csrf.disable())
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
