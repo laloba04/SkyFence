@@ -421,6 +421,57 @@ Además del stack local, Grafana y Prometheus están desplegados en Render (free
 - El dashboard se embebe en la vista **Salud del Sistema** del frontend vía `VITE_GRAFANA_URL`.
 - El workflow `.github/workflows/keep-alive.yml` hace ping cada 10 min para evitar que los servicios free se duerman y pierdan el histórico de métricas.
 
+### Integración MQTT para sensores IoT
+
+Además del polling a adsb.fi, el backend puede recibir posiciones de aeronaves publicadas por **sensores IoT vía MQTT** (Eclipse Paho). Cada mensaje pasa por el mismo pipeline que la API: upsert de la aeronave → geofencing → alerta en tiempo real.
+
+**Configuración** (variables de entorno, todas con valores por defecto):
+
+| Variable | Por defecto | Descripción |
+|----------|-------------|-------------|
+| `SKYFENCE_MQTT_ENABLED` | `false` | Activa la ingesta MQTT |
+| `SKYFENCE_MQTT_BROKER_URL` | `tcp://localhost:1883` | URL del broker (`tcp://mosquitto:1883` en Docker) |
+| `SKYFENCE_MQTT_TOPIC` | `skyfence/sensors/aircraft` | Topic de suscripción |
+| `SKYFENCE_MQTT_USERNAME` / `_PASSWORD` | *(vacío)* | Credenciales si el broker las exige |
+| `SKYFENCE_MQTT_QOS` | `1` | Calidad de servicio de la suscripción |
+| `FLIGHTDATA_API_ENABLED` | `true` | Con `false` apaga el polling de adsb.fi (modo solo-MQTT) |
+
+Las dos fuentes pueden convivir (API + sensores) o usarse por separado. La ingesta expone la métrica `skyfence_mqtt_messages_total{result="processed"|"invalid"}` y cada mensaje lleva su correlation ID `mqtt-<uuid>` en los logs.
+
+**Formato de mensaje esperado** (JSON; los campos extra se ignoran):
+
+```json
+{
+  "icao24": "342266",        // obligatorio, alfanumérico (si es hex ICAO se deduce el país)
+  "callsign": "DRON01",      // opcional, por defecto "SENSOR"
+  "latitude": 40.4983,       // obligatorio, [-90, 90]
+  "longitude": -3.5676,      // obligatorio, [-180, 180]
+  "altitude": 120.5,         // opcional, metros
+  "velocity": 12.3,          // opcional, m/s
+  "onGround": false          // opcional, por defecto false
+}
+```
+
+Los mensajes con JSON inválido, `icao24` ausente/malicioso o coordenadas fuera de rango se descartan (contador `result="invalid"`) sin afectar al servicio.
+
+**Prueba local** con el broker Mosquitto incluido:
+
+```bash
+# 1. Arrancar el broker (perfil opcional del compose)
+docker compose --profile mqtt up -d mosquitto
+
+# 2. Arrancar el backend con MQTT activado
+SKYFENCE_MQTT_ENABLED=true docker compose up -d backend
+
+# 3. Publicar la posición de un sensor (dron dentro de la zona de Barajas)
+docker exec skyfence-mosquitto mosquitto_pub -t skyfence/sensors/aircraft \
+  -m '{"icao24":"342266","callsign":"DRON01","latitude":40.4983,"longitude":-3.5676,"altitude":120.5}'
+```
+
+En segundos aparece la alerta `HIGH — Aeropuerto Madrid-Barajas` en el dashboard y por WebSocket.
+
+> ⚠️ El `mosquitto.conf` incluido permite conexiones anónimas: es solo para desarrollo. En producción usa un broker gestionado con autenticación y TLS (p. ej. HiveMQ Cloud free tier) y define las credenciales por variables de entorno.
+
 ### Alertas automáticas ante caídas y errores críticos
 
 El sistema de alertas funciona sin Alertmanager (el free tier de Render no admite otro servicio) combinando dos piezas:

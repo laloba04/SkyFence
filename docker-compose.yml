@@ -34,9 +34,24 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SKYFENCE_MQTT_ENABLED: ${SKYFENCE_MQTT_ENABLED:-false}
+      SKYFENCE_MQTT_BROKER_URL: ${SKYFENCE_MQTT_BROKER_URL:-tcp://mosquitto:1883}
+      FLIGHTDATA_API_ENABLED: ${FLIGHTDATA_API_ENABLED:-true}
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - skyfence_network
+
+  # Broker MQTT de desarrollo: solo arranca con --profile mqtt
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: skyfence-mosquitto
+    profiles: ["mqtt"]
+    ports:
+      - '1883:1883'
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
     networks:
       - skyfence_network
 
