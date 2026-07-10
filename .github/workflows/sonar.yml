@@ -9,6 +9,9 @@ on:
 jobs:
   sonar:
     name: Build and analyze
+    # Los PRs de Dependabot no reciben los secrets del repo (SONAR_TOKEN),
+    # así que el análisis fallaría siempre; main se analiza tras el merge.
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
 
     steps:
