@@ -362,7 +362,7 @@ El análisis cubre el módulo `backend/` (Java 17). La configuración del workfl
 
 ## Roadmap y futuras mejoras
 
-- Hardening de seguridad: profiles Spring Boot (dev/prod), headers HTTP de seguridad.
+El plan de mejoras vive en el [tablero Mejoras](https://github.com/users/laloba04/projects/3) del repositorio. El modelo de seguridad del proyecto (headers, auditoría de endpoints, perfiles, gestión de secretos) está documentado en [SECURITY.md](SECURITY.md).
 
 ---
 
