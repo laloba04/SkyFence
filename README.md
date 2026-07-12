@@ -223,6 +223,15 @@ npm run dev
 
 ---
 
+## Migraciones de base de datos (Flyway)
+
+El esquema lo gobiernan las migraciones versionadas de `backend/src/main/resources/db/migration/` (Hibernate solo valida: `ddl-auto=validate`):
+
+- `V1__esquema_inicial.sql` — esquema base (solo se ejecuta en BD vacías).
+- `V2__zonas_iniciales.sql` — las 14 zonas restringidas por defecto.
+
+Las bases de datos creadas antes de Flyway se adoptan automáticamente (`baseline-on-migrate` en la versión 1). **Para cambiar el esquema**: añade `V<n>__descripcion.sql` con el `ALTER TABLE` correspondiente y actualiza la entidad JPA; Flyway lo aplica en el siguiente arranque. Nunca edites una migración ya aplicada. Los tests usan H2 con `create-drop`, sin Flyway.
+
 ## API REST
 
 Documentación interactiva disponible en `http://localhost:8080/swagger-ui.html`.
