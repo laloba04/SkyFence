@@ -11,11 +11,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -47,13 +47,16 @@ class DataRetentionServiceTest {
 
         ArgumentCaptor<LocalDateTime> alertCutoff = ArgumentCaptor.forClass(LocalDateTime.class);
         ArgumentCaptor<LocalDateTime> aircraftCutoff = ArgumentCaptor.forClass(LocalDateTime.class);
-        org.mockito.Mockito.verify(alertRepository).deleteByDetectedAtBefore(alertCutoff.capture());
-        org.mockito.Mockito.verify(aircraftRepository).deleteByLastSeenBefore(aircraftCutoff.capture());
+        verify(alertRepository).deleteByDetectedAtBefore(alertCutoff.capture());
+        verify(aircraftRepository).deleteByLastSeenBefore(aircraftCutoff.capture());
 
-        long alertDays = ChronoUnit.DAYS.between(alertCutoff.getValue(), LocalDateTime.now());
-        long aircraftDays = ChronoUnit.DAYS.between(aircraftCutoff.getValue(), LocalDateTime.now());
-        assertTrue(alertDays >= 29 && alertDays <= 30, "corte de alertas ~30 días, fue " + alertDays);
-        assertTrue(aircraftDays >= 6 && aircraftDays <= 7, "corte de aeronaves ~7 días, fue " + aircraftDays);
+        LocalDateTime now = LocalDateTime.now();
+        assertTrue(alertCutoff.getValue().isAfter(now.minusDays(30).minusMinutes(1))
+                && alertCutoff.getValue().isBefore(now.minusDays(30).plusMinutes(1)),
+                "el corte de alertas debe ser ~30 días atrás");
+        assertTrue(aircraftCutoff.getValue().isAfter(now.minusDays(7).minusMinutes(1))
+                && aircraftCutoff.getValue().isBefore(now.minusDays(7).plusMinutes(1)),
+                "el corte de aeronaves debe ser ~7 días atrás");
     }
 
     @Test
