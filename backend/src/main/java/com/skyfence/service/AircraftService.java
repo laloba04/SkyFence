@@ -4,6 +4,7 @@ import com.skyfence.model.Aircraft;
 import com.skyfence.repository.AircraftRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,8 +39,10 @@ public class AircraftService {
         Map<String, Aircraft> existing = aircraftRepository.findByIcao24In(icaos).stream()
                 .collect(Collectors.toMap(Aircraft::getIcao24, Function.identity(), (a, b) -> a));
 
+        LocalDateTime now = LocalDateTime.now();
         List<Aircraft> toSave = unique.stream().map(a -> {
             Aircraft entity = existing.getOrDefault(a.getIcao24(), a);
+            entity.setLastSeen(now);
             if (entity != a) {
                 entity.setCallsign(a.getCallsign());
                 entity.setOriginCountry(a.getOriginCountry());

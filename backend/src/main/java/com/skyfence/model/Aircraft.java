@@ -2,6 +2,8 @@ package com.skyfence.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "aircraft")
 public class Aircraft {
@@ -18,6 +20,7 @@ public class Aircraft {
     private Double altitude;
     private Double velocity;
     private Boolean onGround;
+    private LocalDateTime lastSeen;
 
     public Aircraft() {}
 
@@ -51,4 +54,6 @@ public class Aircraft {
     public void setVelocity(Double velocity) { this.velocity = velocity; }
     public Boolean getOnGround() { return onGround; }
     public void setOnGround(Boolean onGround) { this.onGround = onGround; }
+    public LocalDateTime getLastSeen() { return lastSeen; }
+    public void setLastSeen(LocalDateTime lastSeen) { this.lastSeen = lastSeen; }
 }
