@@ -232,6 +232,10 @@ El esquema lo gobiernan las migraciones versionadas de `backend/src/main/resourc
 
 Las bases de datos creadas antes de Flyway se adoptan automáticamente (`baseline-on-migrate` en la versión 1). **Para cambiar el esquema**: añade `V<n>__descripcion.sql` con el `ALTER TABLE` correspondiente y actualiza la entidad JPA; Flyway lo aplica en el siguiente arranque. Nunca edites una migración ya aplicada. Los tests usan H2 con `create-drop`, sin Flyway.
 
+### Cooldown de alertas
+
+Una aeronave dentro de una zona restringida se detecta en **cada** barrido del scheduler. Sin control, una intrusión de cinco minutos generaría decenas de alertas idénticas en la base de datos, el WebSocket y las métricas. Por eso una misma aeronave no vuelve a alertar en la misma zona hasta pasados **5 minutos** (`SKYFENCE_ALERTS_COOLDOWN_MINUTES`, con `0` se desactiva). Las alertas omitidas se contabilizan en `skyfence_alerts_suppressed_total`.
+
 ### Retención de datos
 
 Un job diario (4:00) purga los datos antiguos para que la BD del free tier (1 GB) no crezca sin límite: alertas con más de **30 días** y aeronaves sin observarse en **7 días**. Umbrales y horario parametrizados (`SKYFENCE_RETENTION_ALERTS_DAYS`, `SKYFENCE_RETENTION_AIRCRAFT_DAYS`, `SKYFENCE_RETENTION_CRON`); lo purgado se registra en el log y en la métrica `skyfence_retention_purged_total{entity}`.
