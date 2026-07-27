@@ -48,6 +48,16 @@ groups:
           summary: "0 aeronaves rastreadas"
           description: "Llevamos 15 minutos sin rastrear ninguna aeronave sobre España. Probable problema con la API de vuelos o con el scheduler."
 
+      # ── WebSocket ─────────────────────────────────────────────────────
+      - alert: NoWebSocketClients
+        expr: skyfence_websocket_sessions == 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nadie conectado al WebSocket de alertas"
+          description: "Media hora sin ninguna sesión STOMP activa. Puede ser falta de visitas (normal de madrugada) o que el frontend no logre conectar."
+
       # ── Errores HTTP ──────────────────────────────────────────────────
       - alert: HighHttpErrorRate
         expr: |

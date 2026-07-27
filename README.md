@@ -410,6 +410,8 @@ docker-compose -f monitoring/docker-compose.yml up
 | `skyfence_alerts_total{severity, zone_type}` | Counter | Alertas de intrusión generadas, etiquetadas por severidad (`HIGH`/`MEDIUM`) y tipo de zona (`AIRPORT`/`MILITARY`/`NUCLEAR`) | Detecciones/hora (`increase(...[1h])`), distribución por severidad y qué tipos de zona concentran más intrusiones |
 | `skyfence_alert_publish_seconds` | Timer | Latencia de persistir una alerta y publicarla por WebSocket al frontend | Salud del pipeline de alertas en tiempo real; detectar degradación de BD o del broker STOMP |
 | `skyfence_aircraft_tracked` | Gauge | Aeronaves rastreadas actualmente sobre España (caché de adsb.fi) | Cobertura del sistema; una caída a 0 delata problemas con la API externa |
+| `skyfence_websocket_sessions` | Gauge | Clientes conectados al WebSocket de alertas (sesiones STOMP) | Audiencia en tiempo real; un 0 sostenido puede indicar que el frontend no logra conectar |
+| `skyfence_alerts_suppressed_total` | Counter | Alertas omitidas por el cooldown de aeronave+zona | Cuánto ruido evita el cooldown; comparado con `skyfence_alerts_total` da la tasa de repetición |
 | `http_server_requests_seconds_count{status=~"4..\|5.."}` | Counter (Spring) | Solicitudes fallidas por endpoint y código de estado | Endpoints problemáticos, abuso (429 del rate limiting) y errores 5xx |
 
 ### Mejores Prácticas de Logs:
